@@ -43,8 +43,8 @@ chat1 = [HumanMessage(content='I will ask you a question, then you should help m
 chat2 = [HumanMessage(content="Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly.  The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below\n\nInitial Database state:\n There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'. \n\nFirst command:\nSELECT emp_id FROM employees WHERE first_name='John' AND last_name='Doe';\n\nThe user is working on the following task. The Database may include state that helps the user complete the task:\nQuery to find the total sales made by the employee 'John Doe'\n\nPlease only respond in rawMySQL format (with no extra formatting or commentary) for a user of  mysql-connector-python, for example, if the result is 59.555, the result would be presented as [('59.555',)]. After responding, end your response.\n", additional_kwargs={}, example=False),
  AIMessage(content='[(1,)]', additional_kwargs={}, example=False),
  HumanMessage(content='SELECT SUM(total_price) FROM sales WHERE emp_id=1;', additional_kwargs={}, example=False),
- AIMessage(content='[(24900,)]', additional_kwargs={}, example=False),
- HumanMessage(content='', additional_kwargs={}, example=False)]
+ AIMessage(content='[(24900,)]', additional_kwargs={}, example=False)
+ ]
 
 
 mysql_agent_prompt_improved = '''I will ask you a question, then you should help me operate a MySQL database with SQL to answer the question. 
@@ -143,10 +143,10 @@ def play_from_point(st, conversation, index, participant):
                 sql_code = first_sql_block.group(1).strip()
             else:
                 sql_code = ""
-            st.session_state['environment_messages'].append(HumanMessage(content=sql_code))
             st.session_state['agent_messages'].append(agent_response)
             if "Final Answer:" in agent_response.content:
                 break
+            st.session_state['environment_messages'].append(HumanMessage(content=sql_code))
         else:
             skip_once = False
         environment_result = environment_model.predict_messages(st.session_state['environment_messages'])

@@ -34,9 +34,32 @@ if 'edited_text' not in st.session_state:
 
 
 # Function to add a message to the conversation
-#def add_message(message):
-#    st.session_state.messages.append(message)
+def add_message(st, conversation):
+    if conversation == "agent":
+        if st.session_state['agent_messages'][-1].type == "ai":
+            return
+        else:
+            agent_response = model.predict_messages(st.session_state['agent_messages'])
+            st.session_state['agent_messages'].append(agent_response)
+            print(agent_response.content + "\n")
+            sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
+            if sql_block:
+                sql_code = sql_block.group(1).strip()
+            else:
+                sql_code = ""
+            if not "Final Answer:" in agent_response.content:
+                st.session_state['environment_messages'].append(HumanMessage(content=sql_code))
+            st.rerun()       
 
+    else:
+        if st.session_state['environment_messages'][-1].type == "ai":
+            return
+        else:
+            environment_result = environment_model.predict_messages(st.session_state['environment_messages'])
+            st.session_state['environment_messages'].append(environment_result)
+            print(environment_result.content)
+            st.session_state['agent_messages'].append(HumanMessage(content=environment_result.content))
+            st.rerun()
 
 
 
@@ -129,7 +152,6 @@ def max_conversation_length():
 
 def main():
     st.set_page_config(layout="wide")
-    #st.markdown(bubble_style, unsafe_allow_html=True)
     st.title("Synchaev")
     # Create a chat conversation from chat1 and display it
     offset = 3
@@ -146,7 +168,7 @@ def main():
     for index in range(max_length):
         # Create a row for each pair of messages
        
-
+        row = st.container()
         with row:
             col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
 
@@ -172,7 +194,14 @@ def main():
                     st.write("")  # Adjust this to better match your app's design
 
         # Additional code for adding messages, etc.
-
+    with row:
+        col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
+        with col1:
+            if st.button('➕', key=f'agent_add'):
+                add_message(st, "agent")
+        with col2:
+            if st.button('➕', key=f'environment_add'):
+                add_message(st, "environment")
 
 if __name__ == "__main__":
     main()
