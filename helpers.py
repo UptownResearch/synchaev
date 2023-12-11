@@ -44,3 +44,37 @@ chat2 = [HumanMessage(content="Pretend you are a MySQL database, responding to S
  HumanMessage(content='SELECT SUM(total_price) FROM sales WHERE emp_id=1;', additional_kwargs={}, example=False),
  AIMessage(content='[(24900,)]', additional_kwargs={}, example=False),
  HumanMessage(content='', additional_kwargs={}, example=False)]
+
+
+mysql_agent_prompt_improved = '''I will ask you a question, then you should help me operate a MySQL database with SQL to answer the question. 
+You have to explain the problem and your solution to me and write down your thoughts. After thinking and explaining 
+thoroughly, every round you can choose to operate or to answer. your operation should be like this: 
+Action: Operation ```sql SELECT * FROM table WHERE condition; ``` You MUST put SQL in markdown format 
+without any other comments. Your SQL should be in one line. Every time you can only execute one SQL statement. 
+I will only execute the statement in the first SQL code block. Every time you write a SQL, I will execute it for you 
+and give you the output. If the output is zero, or empty, you should always double check that you haven't made a mistake before submitting a final answer.
+You can double check by removing limitations from your previous SQL statement until you get non-zero or non-empty results.
+If you are done operating, and you want to commit your final answer, then write down: 
+Action: Answer Final Answer: ["ANSWER1", "ANSWER2", ...] DO NOT write this pattern unless you are sure about your 
+answer. You must ALWAYS provide SQL or a Final Answer. I expect an accurate and correct answer. Your answer should be accurate. 
+Your answer must be exactly the same as the correct answer. If the question is about modifying the database, then after you are done with operation, 
+your answer field can be anything. If your response cannot match any pattern I mentioned earlier, 
+you will be judged as FAIL immediately. Your input will be raw MySQL response, you have to deal with it by yourself.'''
+
+
+environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly.  The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
+
+Initial Database state:
+{}
+
+First command:
+{}
+
+The user is working on the following task. The Database may include state that helps the user complete the task:
+{}
+
+Please only respond in rawMySQL format (with no extra formatting or commentary) for a user of  mysql-connector-python, for example, if the result is 59.555, the result would be presented as [('59.555',)]. After responding, end your response.
+'''
+
+def process_task_environment(data):
+    return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
