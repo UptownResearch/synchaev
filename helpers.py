@@ -1,5 +1,6 @@
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain.chat_models import ChatOpenAI
+import re
 
 # Custom CSS for chat bubbles
 bubble_style = """
@@ -80,19 +81,25 @@ Please only respond in rawMySQL format (with no extra formatting or commentary) 
 def process_task_environment(data):
     return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
 
-def play_from_point(st, conversation, index, participant):
+def play_from_point(st, agent_model, environment_model, conversation, index, participant):
+    print("\nplay_from_point\n\n")
     step = 0
     # first, delete conversation after current location
     if conversation == "agent": 
         # possible values of index = [1,3, 5...]
         delete_from = max(3, index)
-        del st.session_state['agent_messages'][delete_from:]
+        print(f" Deleting {st.session_state['agent_messages'][delete_from+1:]}\n\n")
+        del st.session_state['agent_messages'][delete_from+1:]
         if index <= 3: 
             st.session_state['environment_messages'] = []
         else:
+            print(f" Deleting {st.session_state['environment_messages'][index - 2:]}\n\n")
             del st.session_state['environment_messages'][index - 2:]
     else:
         # possible values of index = [1, 3, ...]
+        print(f" Deleting {st.session_state['environment_messages'][index + 1:]}\n\n")
+        print(f" Deleting {st.session_state['agent_messages'][index + 3:]}\n\n")
+                
         del st.session_state['environment_messages'][index + 1:]
         del st.session_state['agent_messages'][index + 3:]
 
@@ -104,11 +111,13 @@ def play_from_point(st, conversation, index, participant):
         step = 3
     if conversation == "agent" and index > 3:
         step = 4
-    if conversation == "agent" and index >= 3:
+    if conversation == "environment" and index >= 3:
         step = 5
 
+    print(f"\nDetermined Step: {step}")
+
     if step < 3: 
-        agent_response = model.predict_messages(st.session_state['agent_messages'])
+        agent_response = agent_model.predict_messages(st.session_state['agent_messages'])
         st.session_state['agent_messages'].append(agent_response)
         print(agent_response.content + "\n")
     if step < 4:
@@ -132,11 +141,19 @@ def play_from_point(st, conversation, index, participant):
     skip_once = False
     if step == 4:
         skip_once = True
+        if st.session_state['environment_messages'][-1].type == "ai":
+            sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
+            if sql_block:
+                sql_code = sql_block.group(1).strip()
+            else:
+                sql_code = ""  
+            st.session_state['environment_messages'].append(HumanMessage(content=sql_code))
+            print(st.session_state['environment_messages'][-1])
 
     num_turns = 10 
     for i in range(num_turns):
         if not skip_once:
-            agent_response = model.predict_messages(st.session_state['agent_messages'])
+            agent_response = agent_model.predict_messages(st.session_state['agent_messages'])
             print(agent_response.content)
             first_sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
             if first_sql_block:

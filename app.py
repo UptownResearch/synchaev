@@ -1,7 +1,7 @@
 
 import streamlit as st
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment
+from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
@@ -102,7 +102,7 @@ def chat_bubble(conversation, index, participant, text, is_placeholder=False):
             with col2:
                 if participant.lower() == "ai":
                     if st.button('▶️', key=f'{conversation}_play_{index}'):
-                        play_from_point(st, conversation, index, participant)
+                        play_from_point(st, model, model, conversation, index, participant)
                         st.rerun()
             with col3:    
                 if participant.lower() == "ai":
