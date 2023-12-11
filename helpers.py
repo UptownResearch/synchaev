@@ -1,4 +1,5 @@
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
+from langchain.chat_models import ChatOpenAI
 
 # Custom CSS for chat bubbles
 bubble_style = """
@@ -78,3 +79,77 @@ Please only respond in rawMySQL format (with no extra formatting or commentary) 
 
 def process_task_environment(data):
     return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
+
+def play_from_point(st, conversation, index, participant):
+    step = 0
+    # first, delete conversation after current location
+    if conversation == "agent": 
+        # possible values of index = [1,3, 5...]
+        delete_from = max(3, index)
+        del st.session_state['agent_messages'][delete_from:]
+        if index <= 3: 
+            st.session_state['environment_messages'] = []
+        else:
+            del st.session_state['environment_messages'][index - 2:]
+    else:
+        # possible values of index = [1, 3, ...]
+        del st.session_state['environment_messages'][index + 1:]
+        del st.session_state['agent_messages'][index + 3:]
+
+    if conversation == "agent" and index == 1:
+        step = 1
+    if conversation == "agent" and index == 3:
+        step = 2
+    if conversation == "environment" and index == 1:
+        step = 3
+    if conversation == "agent" and index > 3:
+        step = 4
+    if conversation == "agent" and index >= 3:
+        step = 5
+
+    if step < 3: 
+        agent_response = model.predict_messages(st.session_state['agent_messages'])
+        st.session_state['agent_messages'].append(agent_response)
+        print(agent_response.content + "\n")
+    if step < 4:
+        first_response = st.session_state['agent_messages'][3].content
+        first_sql_block = re.search(r"```sql(.*?)```", first_response, re.DOTALL)
+        if first_sql_block:
+            sql_code = first_sql_block.group(1).strip()
+        else:
+            sql_code = ""
+
+        task_, environment_info = process_task_environment(st.session_state['agent_messages'][2].content)
+        environment_prompt = environment_prompt_template.format(environment_info, sql_code, task_)
+        environment_messages = [
+            HumanMessage(content=environment_prompt)
+        ]
+        environment_result = environment_model.predict_messages(environment_messages)
+        st.session_state['environment_messages'].append(environment_result)
+        st.session_state['agent_messages'].append(HumanMessage(content=environment_result.content))
+        print(environment_result.content + "\n")
+    
+    skip_once = False
+    if step == 4:
+        skip_once = True
+
+    num_turns = 10 
+    for i in range(num_turns):
+        if not skip_once:
+            agent_response = model.predict_messages(st.session_state['agent_messages'])
+            print(agent_response.content)
+            first_sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
+            if first_sql_block:
+                sql_code = first_sql_block.group(1).strip()
+            else:
+                sql_code = ""
+            st.session_state['environment_messages'].append(HumanMessage(content=sql_code))
+            st.session_state['agent_messages'].append(agent_response)
+            if "Final Answer:" in agent_response.content:
+                break
+        else:
+            skip_once = False
+        environment_result = environment_model.predict_messages(st.session_state['environment_messages'])
+        st.session_state['environment_messages'].append(environment_result)
+        print(environment_result.content)
+        st.session_state['agent_messages'].append(HumanMessage(content=environment_result.content))
