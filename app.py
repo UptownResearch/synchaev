@@ -41,78 +41,90 @@ if 'edited_text' not in st.session_state:
 
 
 # Modified chat_bubble function
-def chat_bubble(conversation, index, participant, text):
+def chat_bubble(conversation, index, participant, text, is_placeholder=False):
     avatar = "🤖" if participant.lower() == "ai" else "🌍"
-
-    # Check if the message is in edit mode
-    if st.session_state.edit_mode[conversation].get(index, False):
-        # Render text input for editing
-        # Calculate the number of lines in the text
-        number_of_lines = text.count('\n') + 1  # Adding 1 for the last line if it doesn't end with a newline
-
-        # Estimate the height based on the number of lines
-        # You may need to adjust the multiplier based on your specific layout and font size
-        estimated_height_per_line = 40  # Example height in pixels per line
-        estimated_height = number_of_lines * estimated_height_per_line + 100
-
-        # Use st.text_area with the calculated height
-        st.session_state.edited_text[conversation][index] = st.text_area("Edit Message", value=text, key=f'edit_{index}', height=estimated_height)   
-        if st.button('Save', key=f'save_{index}'):
-            # Save logic here
-            if conversation == 'agent':
-                st.session_state['agent_messages'][index].content = st.session_state.edited_text[conversation][index]
-            else:
-                st.session_state['environment_messages'][index].content = st.session_state.edited_text[conversation][index]
-            st.session_state.edit_mode[conversation][index] = False
-            st.rerun()
-    else:
-        # Render chat message
-        with st.chat_message(name=participant, avatar=avatar):
-            st.write(text)
-
+    if is_placeholder:
+        avatar = None
     with st.container():
-        col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 1])
-        with col1:
-                pass
-        with col2:
-            if participant.lower() == "ai":
-                if st.button('▶️', key=f'{conversation}_play_{index}'):
-                    play_from_point(st, conversation, index, participant)
-                    st.rerun()
-        with col3:    
-            if participant.lower() == "ai":
-                if st.button('🔄', key=f'{conversation}_refresh_{index}'):
-                    if conversation == "agent":
-                        agent_response = model.predict_messages(st.session_state['agent_messages'][:index])
-                        print(agent_response)
-                        st.session_state['agent_messages'][index] = agent_response
-                        st.rerun()
-                        
-                    else:
-                        environment_result = environment_model.predict_messages(st.session_state['environment_messages'][:index])
-                        print(environment_result)
-                        st.session_state['environment_messages'][index] = environment_result
-                        st.rerun()
-        with col4:
-            if st.button('✏️', key=f'{conversation}_edit_{index}'):
-                # Toggle edit mode
-                st.session_state.edit_mode[conversation][index] = not st.session_state.edit_mode[conversation].get(index, False)
-                st.rerun()
-        with col5:
-            if participant.lower() == "ai":
-                if st.button('🗑️',  key=f'{conversation}_delete_{index}'):
-                    # Delete the message
-                    if conversation == 'agent':
-                        del st.session_state['agent_messages'][index:]
-                        if index <= 3:
-                            del st.session_state['environment_messages']
-                        if index > 3:
-                            del st.session_state['environment_messages'][index-3:]
-                    else:
-                        del st.session_state['environment_messages'][index:]
-                        del st.session_state['agent_messages'][index+3:]
-                    st.rerun()
+        # Check if the message is in edit mode
+        if st.session_state.edit_mode[conversation].get(index, False):
+            # Render text input for editing
+            # Calculate the number of lines in the text
+            number_of_lines = text.count('\n') + 1  # Adding 1 for the last line if it doesn't end with a newline
 
+            # Estimate the height based on the number of lines
+            # You may need to adjust the multiplier based on your specific layout and font size
+            estimated_height_per_line = 40  # Example height in pixels per line
+            estimated_height = number_of_lines * estimated_height_per_line + 100
+
+            # Use st.text_area with the calculated height
+            st.session_state.edited_text[conversation][index] = st.text_area("Edit Message", value=text, key=f'edit_{index}', height=estimated_height)   
+            if st.button('Save', key=f'save_{index}'):
+                # Save logic here
+                if conversation == 'agent':
+                    st.session_state['agent_messages'][index].content = st.session_state.edited_text[conversation][index]
+                else:
+                    st.session_state['environment_messages'][index].content = st.session_state.edited_text[conversation][index]
+                st.session_state.edit_mode[conversation][index] = False
+                st.rerun()
+        else:
+            # Render chat message
+            with st.chat_message(name=participant, avatar=avatar):
+                st.write(text)
+
+        with st.container():
+            col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 1])
+            with col1:
+                    pass
+            with col2:
+                if participant.lower() == "ai":
+                    if st.button('▶️', key=f'{conversation}_play_{index}'):
+                        play_from_point(st, conversation, index, participant)
+                        st.rerun()
+            with col3:    
+                if participant.lower() == "ai":
+                    if st.button('🔄', key=f'{conversation}_refresh_{index}'):
+                        if conversation == "agent":
+                            agent_response = model.predict_messages(st.session_state['agent_messages'][:index])
+                            print(agent_response)
+                            st.session_state['agent_messages'][index] = agent_response
+                            st.rerun()
+                            
+                        else:
+                            environment_result = environment_model.predict_messages(st.session_state['environment_messages'][:index])
+                            print(environment_result)
+                            st.session_state['environment_messages'][index] = environment_result
+                            st.rerun()
+            with col4:
+                if st.button('✏️', key=f'{conversation}_edit_{index}'):
+                    # Toggle edit mode
+                    st.session_state.edit_mode[conversation][index] = not st.session_state.edit_mode[conversation].get(index, False)
+                    st.rerun()
+            with col5:
+                if participant.lower() == "ai":
+                    if st.button('🗑️',  key=f'{conversation}_delete_{index}'):
+                        # Delete the message
+                        if conversation == 'agent':
+                            del st.session_state['agent_messages'][index:]
+                            if index <= 3:
+                                del st.session_state['environment_messages']
+                            if index > 3:
+                                del st.session_state['environment_messages'][index-3:]
+                        else:
+                            del st.session_state['environment_messages'][index:]
+                            del st.session_state['agent_messages'][index+3:]
+                        st.rerun()
+
+# Function to estimate the height of a chat bubble based on its content
+def estimate_bubble_height(text):
+    # This is a simplistic approach; you might need a more sophisticated method
+    lines = text.count('\n') + 1
+    height_per_line = 10  # adjust this based on your app's styling
+    return lines * height_per_line + 10  # additional padding or fixed height
+
+# Function to get the maximum length of both conversations
+def max_conversation_length():
+    return max(len(st.session_state.agent_messages), len(st.session_state.environment_messages))
 
 
 def main():
@@ -120,31 +132,46 @@ def main():
     #st.markdown(bubble_style, unsafe_allow_html=True)
     st.title("Synchaev")
     # Create a chat conversation from chat1 and display it
+    offset = 3
+    max_length = max(len(st.session_state.agent_messages), len(st.session_state.environment_messages))
+    
+    row = st.container()
+    with row:
+        col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
+        with col1:
+            st.header("Agent")
+        with col2:
+            st.header("Environment")
 
-    # Displaying the conversation
-    col_agent, col_environment = st.columns([5, 5])
+    for index in range(max_length):
+        # Create a row for each pair of messages
+       
 
-    # Agent conversation
-    with col_agent:
-        st.subheader('Agent')
-        for index in range(len(st.session_state.agent_messages)):
-            message = st.session_state.agent_messages[index]
-            chat_bubble("agent", index, message.type, message.content)  
-        if st.button('Add Agent Message'):
-            agent_response = model.predict_messages(st.session_state.agent_messages)
-            st.session_state['agent_messages'].append(agent_response)
-            st.session_state['environment_messages'].append(HumanMessage(content=agent_response.content))
+        with row:
+            col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
 
-    # Environment conversation
-    with col_environment:
-        st.subheader('Environment')
-        for index in range(len(st.session_state.environment_messages)):
-            message = st.session_state.environment_messages[index]
-            chat_bubble("environment", index, message.type, message.content) 
-        if st.button('Add Environment Message'):
-            st.session_state['environment_messages'].append('Environment message')
-   
-   #st.write("Edit Mode States:", st.session_state.edit_mode)
+            # Agent Conversation
+            with col1:
+                if index < len(st.session_state.agent_messages):
+                    message = st.session_state.agent_messages[index]
+                    chat_bubble("agent", index, message.type, message.content)
+                else:
+                    # Placeholder for alignment
+                    st.write("")  # Adjust this to better match your app's design
+
+            # Environment Conversation
+            with col2:
+                if index < offset:
+                    #chat_bubble("environment", index, "ai", "", is_placeholder=True)
+                    st.write("")
+                if index >= offset and (index - offset) < len(st.session_state.environment_messages):
+                    message = st.session_state.environment_messages[index-offset]
+                    chat_bubble("environment", index+offset, message.type, message.content)
+                else:
+                    # Placeholder for alignment
+                    st.write("")  # Adjust this to better match your app's design
+
+        # Additional code for adding messages, etc.
 
 
 if __name__ == "__main__":
