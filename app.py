@@ -1,12 +1,13 @@
 
 import streamlit as st
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+#from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
 from dotenv import load_dotenv
 import re
+import pickle
 
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
@@ -32,6 +33,20 @@ if 'edit_mode' not in st.session_state:
 if 'edited_text' not in st.session_state:
     st.session_state.edited_text = {"agent":{}, "environment":{}}
 
+# Initialize the session state variable if it's not already set
+if 'workspace' not in st.session_state:
+    st.session_state.workspace= None
+
+if 'current_index' not in st.session_state:
+    st.session_state.current_index = 0
+
+# Initialize session state
+if 'num_examples' not in st.session_state:
+    st.session_state.num_examples = 0
+
+# Initialize session state
+if 'file_processed' not in st.session_state:
+    st.session_state.file_processed = False
 
 # Function to add a message to the conversation
 def add_message(st, conversation):
@@ -134,20 +149,21 @@ def chat_bubble(conversation, index, participant, text, is_placeholder=False):
                             if index > 3:
                                 del st.session_state['environment_messages'][index-3:]
                         else:
+                            print("Delete clicked in Environment")
                             del st.session_state['environment_messages'][index:]
                             del st.session_state['agent_messages'][index+3:]
                         st.rerun()
 
-# Function to estimate the height of a chat bubble based on its content
-def estimate_bubble_height(text):
-    # This is a simplistic approach; you might need a more sophisticated method
-    lines = text.count('\n') + 1
-    height_per_line = 10  # adjust this based on your app's styling
-    return lines * height_per_line + 10  # additional padding or fixed height
 
-# Function to get the maximum length of both conversations
-def max_conversation_length():
-    return max(len(st.session_state.agent_messages), len(st.session_state.environment_messages))
+
+# Function to update the current index
+def update_index(direction):
+    if direction == 'left':
+        st.session_state.current_index = (st.session_state.current_index - 1) % len(st.session_state.examples)
+
+    elif direction == 'right':
+        st.session_state.current_index = (st.session_state.current_index + 1) % len(st.session_state.examples)
+
 
 
 def main():
@@ -202,6 +218,51 @@ def main():
         with col2:
             if st.button('➕', key=f'environment_add'):
                 add_message(st, "environment")
+    
+
+    with st.container():
+        # Horizontal bar to set off the navigation section
+        st.markdown("---")
+
+        # Adjusted layout for buttons and current example display
+        col1, col2, col3, col4, col5 = st.columns([1, 1.5, 1, 1.5, 1])
+        with col2:
+            if st.button('← Previous'):
+                update_index('left')
+        with col3:
+            # Display the current example number and total
+            if st.session_state.workspace:
+                st.write(f"{st.session_state.current_index + 1} of {st.session_state.num_examples}")
+        with col4:
+            if st.button('Next →'):
+                update_index('right')
+
+    with st.container():
+        # Adjusted layout for buttons and current example display
+        col1, col2, col3 = st.columns([2, 2, 2])
+        with col2:
+            uploaded_file = st.file_uploader("Choose a file")
+
+            if uploaded_file is not None and not st.session_state.file_processed:
+                try:
+                    # Deserialize the file content
+                    st.session_state.workspace = pickle.load(uploaded_file)
+                    st.session_state.num_examples = len(st.session_state.workspace["agents"])
+                    st.session_state.file_processed = True
+                    # Display a success message
+                    st.success("Pickle file loaded successfully!")
+                    # Load Index 1
+                    st.session_state['environment_messages'] = st.session_state.workspace["environments"][0]
+                    st.session_state['agent_messages'] = st.session_state.workspace["agents"][0]
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+            
+            # Reset the file_processed state if the user uploads a new file
+            if st.button('Upload New File'):
+                st.session_state.file_processed = False
+                st.rerun()
 
 if __name__ == "__main__":
     main()

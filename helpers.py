@@ -170,3 +170,18 @@ def play_from_point(st, agent_model, environment_model, conversation, index, par
         st.session_state['environment_messages'].append(environment_result)
         print(environment_result.content)
         st.session_state['agent_messages'].append(HumanMessage(content=environment_result.content))
+
+
+
+# DEPRECATED --- MARKED FOR DELETION
+# Function to estimate the height of a chat bubble based on its content
+def estimate_bubble_height(text):
+    # This is a simplistic approach; you might need a more sophisticated method
+    lines = text.count('\n') + 1
+    height_per_line = 10  # adjust this based on your app's styling
+    return lines * height_per_line + 10  # additional padding or fixed height
+
+# DEPRECATED --- MARKED FOR DELETION
+# Function to get the maximum length of both conversations
+def max_conversation_length():
+    return max(len(st.session_state.agent_messages), len(st.session_state.environment_messages))
