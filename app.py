@@ -36,13 +36,15 @@ if 'workspace' not in st.session_state:
 if 'current_index' not in st.session_state:
     st.session_state.current_index = 0
 
-# Initialize session state
 if 'num_examples' not in st.session_state:
     st.session_state.num_examples = 0
 
-# Initialize session state
 if 'file_processed' not in st.session_state:
     st.session_state.file_processed = False
+
+if 'file_location' not in st.session_state:
+    st.session_state.file_processed = False
+
 
 
 
@@ -145,6 +147,7 @@ def main():
                     st.session_state.workspace = pickle.load(uploaded_file)
                     st.session_state.num_examples = len(st.session_state.workspace["agents"])
                     st.session_state.file_processed = True
+                    st.session_state['file_location'] = uploaded_file
                     # Display a success message
                     st.success("Pickle file loaded successfully!")
                     # Load Index 1
@@ -156,9 +159,22 @@ def main():
                     st.error(f"An error occurred: {e}")
             
             # Reset the file_processed state if the user uploads a new file
-            if st.button('Upload New File'):
+            if st.button('Open File'):
                 st.session_state.file_processed = False
                 st.rerun()
+
+            # Interface to input the file name
+            file_name = st.text_input("Enter the name of the file to save to (with .pickle extension):")
+
+            # Button to save the input to a pickle file
+            if st.button('Save to pickle file'):
+                if file_name:
+                    # Saving data to the specified pickle file
+                    with open(file_name, 'wb') as file:
+                        pickle.dump(st.session_state.workspace, file)
+                    st.success(f'Data saved successfully to {file_name}!')
+                else:
+                    st.error("Please enter a file name.")
 
 if __name__ == "__main__":
     main()
