@@ -12,11 +12,7 @@ import pickle
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 
-model = ChatOpenAI(model="gpt-4-0613")
-model.temperature = 0.8
 
-environment_model = ChatOpenAI(model="gpt-4-0613")
-model.temperature = 0.8
 
 # Initialize a session state to store the conversation
 if 'agent_messages' not in st.session_state:
@@ -102,7 +98,7 @@ def main():
                     st.write("")
                 if index >= offset and (index - offset) < len(st.session_state.environment_messages):
                     message = st.session_state.environment_messages[index-offset]
-                    chat_bubble(st, "environment", index+offset, message.type, message.content)
+                    chat_bubble(st, "environment", index, message.type, message.content)
                 else:
                     # Placeholder for alignment
                     st.write("")  # Adjust this to better match your app's design

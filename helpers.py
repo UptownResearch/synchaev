@@ -2,6 +2,12 @@ from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain.chat_models import ChatOpenAI
 import re
 
+model = ChatOpenAI(model="gpt-4-0613")
+model.temperature = 0.8
+
+environment_model = ChatOpenAI(model="gpt-4-0613")
+model.temperature = 0.8
+
 # Custom CSS for chat bubbles
 bubble_style = """
 <style>
@@ -91,6 +97,7 @@ def play_from_point(st, agent_model, environment_model, conversation, index, par
         print(f" Deleting {st.session_state['agent_messages'][delete_from+1:]}\n\n")
         del st.session_state['agent_messages'][delete_from+1:]
         if index <= 3: 
+            print(f" Deleting all environment messages.\n\n")
             st.session_state['environment_messages'] = []
         else:
             print(f" Deleting {st.session_state['environment_messages'][index - 2:]}\n\n")
@@ -116,10 +123,11 @@ def play_from_point(st, agent_model, environment_model, conversation, index, par
 
     print(f"\nDetermined Step: {step}")
 
-    if step < 3: 
-        agent_response = agent_model.predict_messages(st.session_state['agent_messages'])
-        st.session_state['agent_messages'].append(agent_response)
-        print(agent_response.content + "\n")
+    if step < 3:
+        if  st.session_state['agent_messages'][-1].type == "HumanMessage":
+            agent_response = agent_model.predict_messages(st.session_state['agent_messages'])
+            st.session_state['agent_messages'].append(agent_response)
+            print(agent_response.content + "\n")
     if step < 4:
         first_response = st.session_state['agent_messages'][3].content
         first_sql_block = re.search(r"```sql(.*?)```", first_response, re.DOTALL)
@@ -130,10 +138,11 @@ def play_from_point(st, agent_model, environment_model, conversation, index, par
 
         task_, environment_info = process_task_environment(st.session_state['agent_messages'][2].content)
         environment_prompt = environment_prompt_template.format(environment_info, sql_code, task_)
-        environment_messages = [
+        st.session_state['environment_messages'] = [
             HumanMessage(content=environment_prompt)
         ]
-        environment_result = environment_model.predict_messages(environment_messages)
+        print(environment_prompt)
+        environment_result = environment_model.predict_messages(st.session_state['environment_messages'])
         st.session_state['environment_messages'].append(environment_result)
         st.session_state['agent_messages'].append(HumanMessage(content=environment_result.content))
         print(environment_result.content + "\n")
@@ -214,7 +223,7 @@ def chat_bubble(st, conversation, index, participant, text, is_placeholder=False
                 if conversation == 'agent':
                     st.session_state['agent_messages'][index].content = st.session_state.edited_text[conversation][index]
                 else:
-                    st.session_state['environment_messages'][index].content = st.session_state.edited_text[conversation][index]
+                    st.session_state['environment_messages'][index-3].content = st.session_state.edited_text[conversation][index]
                 st.session_state.edit_mode[conversation][index] = False
                 st.rerun()
         else:
@@ -241,9 +250,10 @@ def chat_bubble(st, conversation, index, participant, text, is_placeholder=False
                             st.rerun()
                             
                         else:
-                            environment_result = environment_model.predict_messages(st.session_state['environment_messages'][:index])
+                            print(f"Modifying Index {index}")
+                            environment_result = environment_model.predict_messages(st.session_state['environment_messages'][:index-3])
                             print(environment_result)
-                            st.session_state['environment_messages'][index] = environment_result
+                            st.session_state['environment_messages'][index-3] = environment_result
                             st.rerun()
             with col4:
                 if st.button('✏️', key=f'{conversation}_edit_{index}'):
