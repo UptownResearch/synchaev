@@ -185,3 +185,114 @@ def estimate_bubble_height(text):
 # Function to get the maximum length of both conversations
 def max_conversation_length():
     return max(len(st.session_state.agent_messages), len(st.session_state.environment_messages))
+
+
+
+
+
+# Modified chat_bubble function
+def chat_bubble(st, conversation, index, participant, text, is_placeholder=False):
+    avatar = "🤖" if participant.lower() == "ai" else "🌍"
+    if is_placeholder:
+        avatar = None
+    with st.container():
+        # Check if the message is in edit mode
+        if st.session_state.edit_mode[conversation].get(index, False):
+            # Render text input for editing
+            # Calculate the number of lines in the text
+            number_of_lines = text.count('\n') + 1  # Adding 1 for the last line if it doesn't end with a newline
+
+            # Estimate the height based on the number of lines
+            # You may need to adjust the multiplier based on your specific layout and font size
+            estimated_height_per_line = 40  # Example height in pixels per line
+            estimated_height = number_of_lines * estimated_height_per_line + 100
+
+            # Use st.text_area with the calculated height
+            st.session_state.edited_text[conversation][index] = st.text_area("Edit Message", value=text, key=f'edit_{index}', height=estimated_height)   
+            if st.button('Save', key=f'save_{index}'):
+                # Save logic here
+                if conversation == 'agent':
+                    st.session_state['agent_messages'][index].content = st.session_state.edited_text[conversation][index]
+                else:
+                    st.session_state['environment_messages'][index].content = st.session_state.edited_text[conversation][index]
+                st.session_state.edit_mode[conversation][index] = False
+                st.rerun()
+        else:
+            # Render chat message
+            with st.chat_message(name=participant, avatar=avatar):
+                st.write(text)
+
+        with st.container():
+            col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 1])
+            with col1:
+                    pass
+            with col2:
+                if participant.lower() == "ai":
+                    if st.button('▶️', key=f'{conversation}_play_{index}'):
+                        play_from_point(st, model, model, conversation, index, participant)
+                        st.rerun()
+            with col3:    
+                if participant.lower() == "ai":
+                    if st.button('🔄', key=f'{conversation}_refresh_{index}'):
+                        if conversation == "agent":
+                            agent_response = model.predict_messages(st.session_state['agent_messages'][:index])
+                            print(agent_response)
+                            st.session_state['agent_messages'][index] = agent_response
+                            st.rerun()
+                            
+                        else:
+                            environment_result = environment_model.predict_messages(st.session_state['environment_messages'][:index])
+                            print(environment_result)
+                            st.session_state['environment_messages'][index] = environment_result
+                            st.rerun()
+            with col4:
+                if st.button('✏️', key=f'{conversation}_edit_{index}'):
+                    # Toggle edit mode
+                    st.session_state.edit_mode[conversation][index] = not st.session_state.edit_mode[conversation].get(index, False)
+                    st.rerun()
+            with col5:
+                if participant.lower() == "ai":
+                    if st.button('🗑️',  key=f'{conversation}_delete_{index}'):
+                        # Delete the message
+                        if conversation == 'agent':
+                            del st.session_state['agent_messages'][index:]
+                            if index <= 3:
+                                del st.session_state['environment_messages']
+                            if index > 3:
+                                del st.session_state['environment_messages'][index-3:]
+                        else:
+                            print("Delete clicked in Environment")
+                            del st.session_state['environment_messages'][index:]
+                            del st.session_state['agent_messages'][index+3:]
+                        st.rerun()
+
+
+
+# Function to add a message to the conversation
+def add_message(st, conversation):
+    if conversation == "agent":
+        if st.session_state['agent_messages'][-1].type == "ai":
+            return
+        else:
+            agent_response = model.predict_messages(st.session_state['agent_messages'])
+            st.session_state['agent_messages'].append(agent_response)
+            print(agent_response.content + "\n")
+            sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
+            if sql_block:
+                sql_code = sql_block.group(1).strip()
+            else:
+                sql_code = ""
+            if not "Final Answer:" in agent_response.content:
+                st.session_state['environment_messages'].append(HumanMessage(content=sql_code))
+            st.rerun()       
+
+    else:
+        if st.session_state['environment_messages'][-1].type == "ai":
+            return
+        else:
+            environment_result = environment_model.predict_messages(st.session_state['environment_messages'])
+            st.session_state['environment_messages'].append(environment_result)
+            print(environment_result.content)
+            st.session_state['agent_messages'].append(HumanMessage(content=environment_result.content))
+            st.rerun()
+
