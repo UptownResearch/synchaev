@@ -104,24 +104,28 @@ def play_from_point(st, agent_model, environment_model, conversation, index, par
             del st.session_state['environment_messages'][index - 2:]
     else:
         # possible values of index = [1, 3, ...]
-        print(f" Deleting {st.session_state['environment_messages'][index + 1:]}\n\n")
-        print(f" Deleting {st.session_state['agent_messages'][index + 3:]}\n\n")
+        print(f" Deleting {st.session_state['environment_messages'][index - 2:]}\n\n")
+        print(f" Deleting {st.session_state['agent_messages'][index:]}\n\n")
                 
-        del st.session_state['environment_messages'][index + 1:]
-        del st.session_state['agent_messages'][index + 3:]
+        del st.session_state['environment_messages'][index - 2:]
+        del st.session_state['agent_messages'][index:]
+
+        # replace last agent message
+        message = st.session_state['environment_messages'][-1].content
+        st.session_state['agent_messages'].append(HumanMessage(content =message))
 
     if conversation == "agent" and index == 1:
         step = 1
     if conversation == "agent" and index == 3:
         step = 2
-    if conversation == "environment" and index == 1:
-        step = 3
+    if conversation == "environment" and index == 4:
+        step = 5
     if conversation == "agent" and index > 3:
         step = 4
-    if conversation == "environment" and index >= 3:
+    if conversation == "environment" and index >= 4:
         step = 5
 
-    print(f"\nDetermined Step: {step}")
+    print(f"\nIndex: {index} Determined Step: {step}")
 
     if step < 3:
         if  st.session_state['agent_messages'][-1].type == "HumanMessage":
