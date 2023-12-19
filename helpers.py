@@ -155,7 +155,7 @@ def play_from_point(st, agent_model, environment_model, conversation, index, par
     if step == 4:
         skip_once = True
         if st.session_state['environment_messages'][-1].type == "ai":
-            sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
+            sql_block = re.search(r"```sql(.*?)```", st.session_state['agent_messages'][-1].content, re.DOTALL)
             if sql_block:
                 sql_code = sql_block.group(1).strip()
             else:
