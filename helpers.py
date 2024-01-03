@@ -8,6 +8,12 @@ model.temperature = 0.8
 environment_model = ChatOpenAI(model="gpt-4-0613")
 model.temperature = 0.8
 
+class NoneMessage:
+    def __init__(self, content=""):
+        # Constructor for initializing the ChatContent class
+        self.type = None
+        self.content = content
+
 # Custom CSS for chat bubbles
 bubble_style = """
 <style>
