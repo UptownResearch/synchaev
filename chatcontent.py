@@ -112,9 +112,9 @@ class DBBenchChatContent(ChatContent):
         self.agents = filecontent["agents"]
         self.environments = filecontent["environments"]
 
-    def max_chat_length(example_index, self):
+    def max_chat_length(self, example_index):
         # Returns the length of the longer chat (agent or environment)
-        return max(self.agents[example_index], self.environments[example_index]+self.offset)
+        return max(len(self.agents[example_index]), len(self.environments[example_index])+self.offset)
 
     def get_agent_side(self, example_index, message_index):
         return self.agents[example_index][message_index]
@@ -124,7 +124,7 @@ class DBBenchChatContent(ChatContent):
 
     def get_environment_side(self, example_index, message_index):
         mapped_index = self._ext_to_int_index(message_index)
-        if mapped_index < 0:
+        if mapped_index < 0 or mapped_index >= len(self.environments[example_index]):
             return NoneMessage()
         return self.environments[example_index][mapped_index]
 

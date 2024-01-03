@@ -11,8 +11,9 @@ model.temperature = 0.8
 class NoneMessage:
     def __init__(self, content=""):
         # Constructor for initializing the ChatContent class
-        self.type = None
+        self.type = ""
         self.content = content
+        self.is_placeholder = True
 
 # Custom CSS for chat bubbles
 bubble_style = """
@@ -211,9 +212,11 @@ def max_conversation_length():
 
 # Modified chat_bubble function
 def chat_bubble(st, conversation, index, participant, text, is_placeholder=False):
-    avatar = "🤖" if participant.lower() == "ai" else "🌍"
+    avatar = ""
+    if participant is not None:
+        avatar = "🤖" if participant.lower() == "ai" else "🌍"
     if is_placeholder:
-        avatar = None
+        avatar = "⚪️"
     with st.container():
         # Check if the message is in edit mode
         if st.session_state.edit_mode[conversation].get(index, False):
@@ -231,9 +234,9 @@ def chat_bubble(st, conversation, index, participant, text, is_placeholder=False
             if st.button('Save', key=f'save_{index}'):
                 # Save logic here
                 if conversation == 'agent':
-                    st.session_state['agent_messages'][index].content = st.session_state.edited_text[conversation][index]
+                    st.session_state.cc.update_agent_side(st.session_state.example_index, index, st.session_state.edited_text[conversation][index])
                 else:
-                    st.session_state['environment_messages'][index-3].content = st.session_state.edited_text[conversation][index]
+                    st.session_state.cc.update_environment_side(st.session_state.example_index, index, st.session_state.edited_text[conversation][index])
                 st.session_state.edit_mode[conversation][index] = False
                 st.rerun()
         else:
@@ -248,42 +251,25 @@ def chat_bubble(st, conversation, index, participant, text, is_placeholder=False
             with col2:
                 if participant.lower() == "ai":
                     if st.button('▶️', key=f'{conversation}_play_{index}'):
-                        play_from_point(st, model, model, conversation, index, participant)
+                        st.session_state.cc.replay_from_index(st.session_state.example_index, conversation, index)
                         st.rerun()
             with col3:    
                 if participant.lower() == "ai":
                     if st.button('🔄', key=f'{conversation}_refresh_{index}'):
-                        if conversation == "agent":
-                            agent_response = model.predict_messages(st.session_state['agent_messages'][:index])
-                            print(agent_response)
-                            st.session_state['agent_messages'][index] = agent_response
-                            st.rerun()
-                            
-                        else:
-                            print(f"Modifying Index {index}")
-                            environment_result = environment_model.predict_messages(st.session_state['environment_messages'][:index-3])
-                            print(environment_result)
-                            st.session_state['environment_messages'][index-3] = environment_result
-                            st.rerun()
+                        st.session_state.cc.refresh_at_index(st.session_state.example_index, conversation, index)
+                        st.rerun()
+
             with col4:
-                if st.button('✏️', key=f'{conversation}_edit_{index}'):
-                    # Toggle edit mode
-                    st.session_state.edit_mode[conversation][index] = not st.session_state.edit_mode[conversation].get(index, False)
-                    st.rerun()
+                if not is_placeholder:
+                    if st.button('✏️', key=f'{conversation}_edit_{index}'):
+                        # Toggle edit mode
+                        st.session_state.edit_mode[conversation][index] = not st.session_state.edit_mode[conversation].get(index, False)
+                        st.rerun()
             with col5:
                 if participant.lower() == "ai":
                     if st.button('🗑️',  key=f'{conversation}_delete_{index}'):
                         # Delete the message
-                        if conversation == 'agent':
-                            del st.session_state['agent_messages'][index:]
-                            if index <= 3:
-                                del st.session_state['environment_messages']
-                            if index > 3:
-                                del st.session_state['environment_messages'][index-3:]
-                        else:
-                            print("Delete clicked in Environment")
-                            del st.session_state['environment_messages'][index:]
-                            del st.session_state['agent_messages'][index+3:]
+                        st.session_state.cc.delete_at_index(st.session_state.example_index, conversation, index)
                         st.rerun()
 
 
