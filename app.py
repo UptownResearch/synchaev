@@ -61,6 +61,18 @@ def update_index(direction):
     st.session_state['environment_messages'] = st.session_state.workspace['environments'][index]
     st.session_state.current_index = index 
 
+# Function to update the current index
+def delete_index():
+    index = st.session_state.current_index
+    del st.session_state.workspace['agents'][index] 
+    del st.session_state.workspace['environments'][index] 
+    st.session_state.num_examples = len(st.session_state.workspace['agents'])
+    index = index % st.session_state.num_examples
+    st.session_state['agent_messages'] = st.session_state.workspace['agents'][index]
+    st.session_state['environment_messages'] = st.session_state.workspace['environments'][index]
+    st.session_state.current_index = index 
+
+
 
 def main():
     st.set_page_config(layout="wide")
@@ -115,10 +127,19 @@ def main():
             if st.button('➕', key=f'environment_add'):
                 add_message(st, "environment")
     
-
     with st.container():
         # Horizontal bar to set off the navigation section
         st.markdown("---")
+        # Adjusted layout for buttons and current example display
+        col1, col2, col3, col4, col5 = st.columns([1, 1.5, 1, 1.5, 1])
+        with col3:
+            if st.button('Delete'):
+                delete_index()
+                st.rerun()
+
+
+    with st.container():
+
 
         # Adjusted layout for buttons and current example display
         col1, col2, col3, col4, col5 = st.columns([1, 1.5, 1, 1.5, 1])
