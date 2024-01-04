@@ -1,13 +1,14 @@
 
 import streamlit as st
 #from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point, chat_bubble, add_message
+from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point, chat_bubble, add_message, model, environment_model
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
 from dotenv import load_dotenv
 import re
 import pickle
+from chatcontent import DBBenchChatContent
 
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
@@ -33,8 +34,8 @@ if 'edited_text' not in st.session_state:
 if 'workspace' not in st.session_state:
     st.session_state.workspace= None
 
-if 'current_index' not in st.session_state:
-    st.session_state.current_index = 0
+if 'example_index' not in st.session_state:
+    st.session_state.example_index = 0
 
 if 'num_examples' not in st.session_state:
     st.session_state.num_examples = 0
@@ -45,32 +46,29 @@ if 'file_processed' not in st.session_state:
 if 'file_location' not in st.session_state:
     st.session_state.file_processed = False
 
-
-
+if 'cc' not in st.session_state:
+    st.session_state.cc = DBBenchChatContent(model, environment_model)
+    inital = {
+            "agents": [chat1],
+            "environments": [chat2]
+    }
+    st.session_state.cc.load(inital)
 
 # Function to update the current index
 def update_index(direction):
-    index = st.session_state.current_index
-    st.session_state.workspace['agents'][index] = st.session_state['agent_messages']
-    st.session_state.workspace['environments'][index] = st.session_state['environment_messages']
+    index = st.session_state.example_index
     if direction == 'left':
-        index = (index - 1) % st.session_state.num_examples
+        index = (index - 1) % st.session_state.cc.num_examples()
     elif direction == 'right':
-        index = (index + 1) % st.session_state.num_examples
-    st.session_state['agent_messages'] = st.session_state.workspace['agents'][index]
-    st.session_state['environment_messages'] = st.session_state.workspace['environments'][index]
-    st.session_state.current_index = index 
+        index = (index + 1) % st.session_state.cc.num_examples()
+    st.session_state.example_index = index 
 
 # Function to update the current index
 def delete_index():
-    index = st.session_state.current_index
-    del st.session_state.workspace['agents'][index] 
-    del st.session_state.workspace['environments'][index] 
-    st.session_state.num_examples = len(st.session_state.workspace['agents'])
-    index = index % st.session_state.num_examples
-    st.session_state['agent_messages'] = st.session_state.workspace['agents'][index]
-    st.session_state['environment_messages'] = st.session_state.workspace['environments'][index]
-    st.session_state.current_index = index 
+    index = st.session_state.example_index
+    st.session_state.cc.delete_example(index)
+    index = index % st.session_state.cc.num_examples()
+    st.session_state.example_index = index 
 
 
 
@@ -79,7 +77,7 @@ def main():
     st.title("Synchaev")
     # Create a chat conversation from chat1 and display it
     offset = 3
-    max_length = max(len(st.session_state.agent_messages), len(st.session_state.environment_messages))
+    max_length = st.session_state.cc.max_chat_length(st.session_state.example_index)
     
     row = st.container()
     with row:
@@ -98,34 +96,23 @@ def main():
 
             # Agent Conversation
             with col1:
-                if index < len(st.session_state.agent_messages):
-                    message = st.session_state.agent_messages[index]
-                    chat_bubble(st, "agent", index, message.type, message.content)
-                else:
-                    # Placeholder for alignment
-                    st.write("")  # Adjust this to better match your app's design
-
+                message = st.session_state.cc.get_agent_side(st.session_state.example_index, index)
+                chat_bubble(st, "agent", index, message.type, message.content, is_placeholder=True if hasattr(message, 'is_placeholder') else False)
             # Environment Conversation
             with col2:
-                if index < offset:
-                    #chat_bubble("environment", index, "ai", "", is_placeholder=True)
-                    st.write("")
-                if index >= offset and (index - offset) < len(st.session_state.environment_messages):
-                    message = st.session_state.environment_messages[index-offset]
-                    chat_bubble(st, "environment", index, message.type, message.content)
-                else:
-                    # Placeholder for alignment
-                    st.write("")  # Adjust this to better match your app's design
+                message = st.session_state.cc.get_environment_side(st.session_state.example_index, index)
+                chat_bubble(st, "environment", index, message.type, message.content, is_placeholder=True if hasattr(message, 'is_placeholder') else False)
+
 
         # Additional code for adding messages, etc.
     with row:
         col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
         with col1:
             if st.button('➕', key=f'agent_add'):
-                add_message(st, "agent")
+                st.session_state.cc.add_to_agent(st.session_state.example_index)
         with col2:
             if st.button('➕', key=f'environment_add'):
-                add_message(st, "environment")
+                st.session_state.cc.add_to_environment(st.session_state.example_index)
     
     with st.container():
         # Horizontal bar to set off the navigation section
@@ -134,13 +121,11 @@ def main():
         col1, col2, col3, col4, col5 = st.columns([1, 1.5, 1, 1.5, 1])
         with col3:
             if st.button('Delete'):
-                delete_index()
+                st.session_state.cc.delete_example(st.session_state.example_index)
                 st.rerun()
 
 
     with st.container():
-
-
         # Adjusted layout for buttons and current example display
         col1, col2, col3, col4, col5 = st.columns([1, 1.5, 1, 1.5, 1])
         with col2:
@@ -150,7 +135,7 @@ def main():
         with col3:
             # Display the current example number and total
             if st.session_state.workspace:
-                st.write(f"{st.session_state.current_index + 1} of {st.session_state.num_examples}")
+                st.write(f"{st.session_state.example_index+ 1} of {max_length}")
         with col4:
             if st.button('Next →'):
                 update_index('right')
@@ -165,15 +150,13 @@ def main():
             if uploaded_file is not None and not st.session_state.file_processed:
                 try:
                     # Deserialize the file content
-                    st.session_state.workspace = pickle.load(uploaded_file)
-                    st.session_state.num_examples = len(st.session_state.workspace["agents"])
+                    filecontents = pickle.load(uploaded_file)
+                    st.session_state.cc = DBBenchChatContent(model, environment_model)
+                    st.session_state.cc.load(filecontents)
                     st.session_state.file_processed = True
                     st.session_state['file_location'] = uploaded_file
                     # Display a success message
                     st.success("Pickle file loaded successfully!")
-                    # Load Index 1
-                    st.session_state['environment_messages'] = st.session_state.workspace["environments"][0]
-                    st.session_state['agent_messages'] = st.session_state.workspace["agents"][0]
                     st.rerun()
 
                 except Exception as e:
@@ -191,9 +174,7 @@ def main():
             if st.button('Save to pickle file'):
                 if file_name:
                     # Saving data to the specified pickle file
-                    with open(file_name, 'wb') as file:
-                        pickle.dump(st.session_state.workspace, file)
-                    st.success(f'Data saved successfully to {file_name}!')
+                    st.session_state.cc.write(file_name)
                 else:
                     st.error("Please enter a file name.")
 
