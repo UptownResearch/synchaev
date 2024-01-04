@@ -1,12 +1,25 @@
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain.chat_models import ChatOpenAI
 import re
+from fastchat import FastChatAgent
 
-model = ChatOpenAI(model="gpt-4-0613")
-model.temperature = 0.8
+# model = ChatOpenAI(model="gpt-4-0613")
+# model.temperature = 0.8
+
+model_name = 'Llama-2-7b-chat-hf'
+controller_address = None
+worker_address = "https://iv25t5kp7tzwju-8800.proxy.runpod.net"
+temperature = 0.8
+max_new_tokens = 512
+top_p = 0
+
+
+model = FastChatAgent(model_name, controller_address=controller_address, worker_address=worker_address, 
+                         temperature=temperature , max_new_tokens=max_new_tokens)
+
 
 environment_model = ChatOpenAI(model="gpt-4-0613")
-model.temperature = 0.8
+environment_model.temperature = 0.8
 
 class NoneMessage:
     def __init__(self, content=""):

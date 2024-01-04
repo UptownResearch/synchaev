@@ -120,7 +120,7 @@ class DBBenchChatContent(ChatContent):
         return self.agents[example_index][message_index]
 
     def update_agent_side(self, example_index, message_index, content):
-        self.agents[example_index][message_index] = content
+        self.agents[example_index][message_index].content = content
 
     def get_environment_side(self, example_index, message_index):
         mapped_index = self._ext_to_int_index(message_index)
@@ -130,7 +130,7 @@ class DBBenchChatContent(ChatContent):
 
     def update_environment_side(self, example_index, message_index, content):
         mapped_index = self._ext_to_int_index(message_index)
-        self.environments[example_index][mapped_index] = content
+        self.environments[example_index][mapped_index].content = content
 
     def delete_example(self, example_index):
         del self.agents[example_index]
@@ -180,7 +180,7 @@ class DBBenchChatContent(ChatContent):
             
         else:
             mapped_index = self._ext_to_int_index(message_index)
-            self.environments[example_index][mapped_index]  = self.environment_model.predict_messages(self.environments[example_index][:mapped_index])
+            self.environments[example_index][mapped_index] = self.environment_model.predict_messages(self.environments[example_index][:mapped_index])
             print(self.environments[example_index][mapped_index])
 
     def delete_at_index(self, example_index, conversation_side, message_index):
@@ -206,6 +206,7 @@ class DBBenchChatContent(ChatContent):
             sql_code = sql_block.group(1).strip()
         else:
             sql_code = ""  
+        print( f'SQL code found: {sql_code}')
         return sql_code
 
     def replay_from_index(self, example_index, conversation_side, message_index):
@@ -282,9 +283,9 @@ class DBBenchChatContent(ChatContent):
             if not skip_once:
                 agent_response = self.agent_model.predict_messages(self.agents[example_index])
                 print(agent_response.content)
-                sql_code = self._get_sql_code(self.agents[example_index][-1].content)
+                sql_code = self._get_sql_code(agent_response.content)
                 self.agents[example_index].append(agent_response)
-                if "Final Answer:" in agent_response.content:
+                if "Final Answer:" in agent_response.content or sql_code == "":
                     break
                 self.environments[example_index].append(HumanMessage(content=sql_code))
             else:
