@@ -8,14 +8,14 @@ from fastchat import FastChatAgent
 
 model_name = 'Llama-2-7b-chat-hf'
 controller_address = None
-worker_address = "https://iv25t5kp7tzwju-8800.proxy.runpod.net"
-temperature = 0.8
+worker_address = "https://ok7ld8gcdpzbih-8800.proxy.runpod.net"
+temperature = 1.2
 max_new_tokens = 512
-top_p = 0
+top_p = 0.5
 
 
 model = FastChatAgent(model_name, controller_address=controller_address, worker_address=worker_address, 
-                         temperature=temperature , max_new_tokens=max_new_tokens)
+                         temperature=temperature , max_new_tokens=max_new_tokens, top_p=top_p)
 
 
 environment_model = ChatOpenAI(model="gpt-4-0613")

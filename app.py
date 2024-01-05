@@ -134,8 +134,7 @@ def main():
                 st.rerun()
         with col3:
             # Display the current example number and total
-            if st.session_state.workspace:
-                st.write(f"{st.session_state.example_index+ 1} of {max_length}")
+            st.write(f"{st.session_state.example_index+ 1} of {st.session_state.cc.num_examples()}")
         with col4:
             if st.button('Next →'):
                 update_index('right')

@@ -87,6 +87,7 @@ class FastChatAgent(AgentClient):
             "max_new_tokens": self.max_new_tokens,
             "echo": False,
             "top_p": self.top_p,
+            "use_cache": False,
             **self.args,
         }
         if self.prompter:
@@ -127,8 +128,9 @@ class FastChatAgent(AgentClient):
                 for line in response.iter_lines(decode_unicode=False, delimiter=b"\0"):
                     if line:
                         data = json.loads(line)
-                        if data["error_code"] != 0:
-                            raise AgentNetworkException(data["text"])
+                        if "error_code" in data:
+                            if data["error_code"] != 0:
+                                raise AgentNetworkException(data["text"])
                         text = data["text"]
                 return text
             # if timeout or connection error, retry

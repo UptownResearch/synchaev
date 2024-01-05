@@ -155,17 +155,15 @@ class DBBenchChatContent(ChatContent):
             agent_response = self.agent_model.predict_messages(self.agents[example_index])
             self.agents[example_index].append(agent_response)
             print(agent_response.content + "\n")
-            sql_block = re.search(r"```sql(.*?)```", agent_response.content, re.DOTALL)
+
+    def add_to_environment(self, example_index):
+        if self.environments[example_index][-1].type == "ai":
+            sql_block = re.search(r"```sql(.*?)```", self.agents[example_index][-1], re.DOTALL)
             if sql_block:
                 sql_code = sql_block.group(1).strip()
             else:
                 sql_code = ""
-            if not "Final Answer:" in agent_response.content:
-                self.environments[example_index].append(HumanMessage(content=sql_code))     
-
-    def add_to_environment(self, example_index):
-        if self.environments[example_index][-1].type == "ai":
-            return
+            self.environments[example_index].append(HumanMessage(content=sql_code)) 
         else:
             environment_result = self.environment_model.predict_messages(self.environments[example_index])
             self.environments[example_index].append(environment_result)
@@ -175,12 +173,16 @@ class DBBenchChatContent(ChatContent):
     def refresh_at_index(self, example_index, conversation_side, message_index):
         # print(f"Modifying Index {index}")
         if conversation_side == "agent":
-            self.agents[example_index][message_index] = self.agent_model.predict_messages(self.agents[example_index][:message_index])
+            result = self.agent_model.predict_messages(self.agents[example_index][:message_index])
+            if result.content != "":
+                self.agents[example_index][message_index] = result
             print(self.agents[example_index][message_index])
             
         else:
             mapped_index = self._ext_to_int_index(message_index)
-            self.environments[example_index][mapped_index] = self.environment_model.predict_messages(self.environments[example_index][:mapped_index])
+            result = self.environment_model.predict_messages(self.environments[example_index][:mapped_index])
+            if result.content != "":
+                self.environments[example_index][mapped_index] = result
             print(self.environments[example_index][mapped_index])
 
     def delete_at_index(self, example_index, conversation_side, message_index):
@@ -195,7 +197,7 @@ class DBBenchChatContent(ChatContent):
             print("Delete clicked in Environment")
             mapped_index = self._ext_to_int_index(message_index)
             del self.environments[example_index][mapped_index:]
-            del self.agents[example_index][message_index+1:]
+            del self.agents[example_index][message_index:]
     
     def _process_task_environment(self, data):
         return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
