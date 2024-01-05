@@ -110,9 +110,11 @@ def main():
         with col1:
             if st.button('➕', key=f'agent_add'):
                 st.session_state.cc.add_to_agent(st.session_state.example_index)
+                st.rerun()
         with col2:
             if st.button('➕', key=f'environment_add'):
                 st.session_state.cc.add_to_environment(st.session_state.example_index)
+                st.rerun()
     
     with st.container():
         # Horizontal bar to set off the navigation section
@@ -156,6 +158,7 @@ def main():
                     st.session_state['file_location'] = uploaded_file
                     # Display a success message
                     st.success("Pickle file loaded successfully!")
+                    st.session_state.example_index = 0
                     st.rerun()
 
                 except Exception as e:
