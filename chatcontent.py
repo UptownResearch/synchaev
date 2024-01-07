@@ -117,6 +117,8 @@ class DBBenchChatContent(ChatContent):
         return max(len(self.agents[example_index]), len(self.environments[example_index])+self.offset)
 
     def get_agent_side(self, example_index, message_index):
+        if message_index >= len(self.agents[example_index]):
+            return NoneMessage()
         return self.agents[example_index][message_index]
 
     def update_agent_side(self, example_index, message_index, content):
