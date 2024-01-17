@@ -1,6 +1,7 @@
 import pickle
 from helpers import NoneMessage, chat3
 import re
+from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 class ChatContent:
@@ -80,21 +81,20 @@ your answer field can be anything. If your response cannot match any pattern I m
 you will be judged as FAIL immediately. Your input will be raw MySQL response, you have to deal with it by yourself.'''
 
 
-environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly.  The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
-
-Initial Database state:
-{}
+environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly. The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
 
 Tables:
 {}
 
-First command:
+Task and Database state:
 {}
 
-The user is working on the following task:
+SQL command:
+```
 {}
+```
 
-Please only respond in rawMySQL format (with no extra formatting or commentary) for a user of  mysql-connector-python, for example, if the result is 59.555, the result would be presented as [('59.555',)]. After responding, end your response.
+Please ONLY respond in rawMySQL format (**with no extra formatting or commentary**) for a user of mysql-connector-python. Your output should STRICTLY be in ```Output\n<MySQL Output>\n```. For example, if the result is 59.555, the result would be presented as ```Output\n[('59.555',)]\n```. After responding, END your response.
 '''
 
 class DBBenchChatContent(ChatContent):
@@ -107,6 +107,8 @@ class DBBenchChatContent(ChatContent):
         self.agents = None
         self.environments = None
         self.offset = 3
+        self.agent_sep_task_desc = ChatOpenAI(model="gpt-3.5-turbo")
+        self.agent_sep_task_desc.temperature = 0.0
     
     def _ext_to_int_index(self, external_index):
         return external_index - self.offset
@@ -206,7 +208,7 @@ class DBBenchChatContent(ChatContent):
             del self.agents[example_index][message_index:]
     
     def _process_task_environment(self, data):
-        return (data.split(".")[0], '.'.join(data.split(".")[1:]))
+        return (data.split("There are 2 tables involved with this task.")[0], data.split("There are 2 tables involved with this task.")[1])
     
     def _get_sql_code(self, message):
         sql_block = re.search(r"```sql(.*?)```", message, re.DOTALL)
@@ -267,9 +269,10 @@ class DBBenchChatContent(ChatContent):
         if step < 4:
             first_response = self.agents[example_index][3].content
             sql_code = self._get_sql_code(first_response)
-            task_, environment_info = self._process_task_environment(self.agents[example_index][2].content)
-            tables_ = self.creator_model.predict_messages(chat3 + [HumanMessage(content=environment_info)]).content
-            environment_prompt = environment_prompt_template.format(environment_info, tables_, sql_code, task_)
+            # task_, environment_info = self._process_task_environment(self.agents[example_index][2].content)
+            task_and_envinfo = self.agents[example_index][2].content
+            tables_ = self.creator_model.predict_messages(chat3 + [HumanMessage(content=task_and_envinfo)]).content
+            environment_prompt = environment_prompt_template.format(tables_, task_and_envinfo, sql_code)
             self.environments[example_index] = [
                 HumanMessage(content=environment_prompt)
             ]
