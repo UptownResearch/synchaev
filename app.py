@@ -1,7 +1,7 @@
 
 import streamlit as st
 #from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point, chat_bubble, add_message, model, environment_model
+from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point, chat_bubble, add_message, model, environment_model, creator_model
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
@@ -47,7 +47,7 @@ if 'file_location' not in st.session_state:
     st.session_state.file_processed = False
 
 if 'cc' not in st.session_state:
-    st.session_state.cc = DBBenchChatContent(model, environment_model)
+    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
     inital = {
             "agents": [chat1],
             "environments": [chat2]
@@ -152,7 +152,7 @@ def main():
                 try:
                     # Deserialize the file content
                     filecontents = pickle.load(uploaded_file)
-                    st.session_state.cc = DBBenchChatContent(model, environment_model)
+                    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
                     st.session_state.cc.load(filecontents)
                     st.session_state.file_processed = True
                     st.session_state['file_location'] = uploaded_file

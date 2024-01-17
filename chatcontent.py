@@ -1,5 +1,5 @@
 import pickle
-from helpers import NoneMessage
+from helpers import NoneMessage, chat3
 import re
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
@@ -85,21 +85,25 @@ environment_prompt_template = '''Pretend you are a MySQL database, responding to
 Initial Database state:
 {}
 
+Tables:
+{}
+
 First command:
 {}
 
-The user is working on the following task. The Database may include state that helps the user complete the task:
+The user is working on the following task:
 {}
 
 Please only respond in rawMySQL format (with no extra formatting or commentary) for a user of  mysql-connector-python, for example, if the result is 59.555, the result would be presented as [('59.555',)]. After responding, end your response.
 '''
 
 class DBBenchChatContent(ChatContent):
-    def __init__(self, agent_model, environment_model):
+    def __init__(self, agent_model, environment_model, creator_model):
         # Initialize with additional properties for DBBench
         super().__init__()
         self.agent_model = agent_model
         self.environment_model = environment_model
+        self.creator_model = creator_model
         self.agents = None
         self.environments = None
         self.offset = 3
@@ -202,7 +206,7 @@ class DBBenchChatContent(ChatContent):
             del self.agents[example_index][message_index:]
     
     def _process_task_environment(self, data):
-        return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
+        return (data.split(".")[0], '.'.join(data.split(".")[1:]))
     
     def _get_sql_code(self, message):
         sql_block = re.search(r"```sql(.*?)```", message, re.DOTALL)
@@ -264,7 +268,8 @@ class DBBenchChatContent(ChatContent):
             first_response = self.agents[example_index][3].content
             sql_code = self._get_sql_code(first_response)
             task_, environment_info = self._process_task_environment(self.agents[example_index][2].content)
-            environment_prompt = environment_prompt_template.format(environment_info, sql_code, task_)
+            tables_ = self.creator_model.predict_messages(chat3 + [HumanMessage(content=environment_info)]).content
+            environment_prompt = environment_prompt_template.format(environment_info, tables_, sql_code, task_)
             self.environments[example_index] = [
                 HumanMessage(content=environment_prompt)
             ]
