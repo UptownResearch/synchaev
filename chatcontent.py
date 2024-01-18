@@ -1,6 +1,7 @@
 import pickle
-from helpers import NoneMessage
+from helpers import NoneMessage, chat1, chat2, chat3
 import re
+from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 class ChatContent:
@@ -80,26 +81,29 @@ your answer field can be anything. If your response cannot match any pattern I m
 you will be judged as FAIL immediately. Your input will be raw MySQL response, you have to deal with it by yourself.'''
 
 
-environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly.  The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
+environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly. The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
 
-Initial Database state:
+Tables:
 {}
 
-First command:
+Task and Database state:
 {}
 
-The user is working on the following task. The Database may include state that helps the user complete the task:
+SQL command:
+```
 {}
+```
 
-Please only respond in rawMySQL format (with no extra formatting or commentary) for a user of  mysql-connector-python, for example, if the result is 59.555, the result would be presented as [('59.555',)]. After responding, end your response.
+Please ONLY respond in rawMySQL format (**with no extra formatting or commentary**) for a user of mysql-connector-python. Your output should STRICTLY be in ```Output\n<MySQL Output>\n```. For example, if the result is 59.555, the result would be presented as ```Output\n[('59.555',)]\n```. After responding, END your response.
 '''
 
 class DBBenchChatContent(ChatContent):
-    def __init__(self, agent_model, environment_model):
+    def __init__(self, agent_model, environment_model, creator_model):
         # Initialize with additional properties for DBBench
         super().__init__()
         self.agent_model = agent_model
         self.environment_model = environment_model
+        self.creator_model = creator_model
         self.agents = None
         self.environments = None
         self.offset = 3
@@ -202,7 +206,7 @@ class DBBenchChatContent(ChatContent):
             del self.agents[example_index][message_index:]
     
     def _process_task_environment(self, data):
-        return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
+        return (data.split("There are 2 tables involved with this task.")[0], data.split("There are 2 tables involved with this task.")[1])
     
     def _get_sql_code(self, message):
         sql_block = re.search(r"```sql(.*?)```", message, re.DOTALL)
@@ -263,8 +267,10 @@ class DBBenchChatContent(ChatContent):
         if step < 4:
             first_response = self.agents[example_index][3].content
             sql_code = self._get_sql_code(first_response)
-            task_, environment_info = self._process_task_environment(self.agents[example_index][2].content)
-            environment_prompt = environment_prompt_template.format(environment_info, sql_code, task_)
+            # task_, environment_info = self._process_task_environment(self.agents[example_index][2].content)
+            task_and_envinfo = self.agents[example_index][2].content
+            tables_ = self.creator_model.predict_messages(chat3 + [HumanMessage(content=task_and_envinfo)]).content
+            environment_prompt = environment_prompt_template.format(tables_, task_and_envinfo, sql_code)
             self.environments[example_index] = [
                 HumanMessage(content=environment_prompt)
             ]
@@ -299,3 +305,31 @@ class DBBenchChatContent(ChatContent):
             print(environment_result.content)
             self.agents[example_index].append(HumanMessage(content=environment_result.content))
 
+    def play_start2end(self, task, num_turns):
+        agent_messages = chat1[:1] + [HumanMessage(content=task)]
+        agent_response = self.agent_model.predict_messages(agent_messages)
+        print("AGENT: ", agent_response.content)
+        agent_messages.append(agent_response)
+        tables_ = self.creator_model.predict_messages(chat3 + [HumanMessage(content=task)]).content
+        sql_code = self._get_sql_code(agent_response.content)
+        environment_prompt = environment_prompt_template.format(tables_, task, sql_code)
+        environment_messages = [HumanMessage(content=environment_prompt)]
+        environment_result = self.environment_model.predict_messages(environment_messages)
+        environment_messages.append(environment_result)
+        agent_messages.append(HumanMessage(content=environment_result.content))
+        print("ENVIRONMENT: ", environment_result.content)
+        for i in range(num_turns):
+            agent_response = self.agent_model.predict_messages(agent_messages)
+            print("AGENT: ", agent_response.content)
+            sql_code = self._get_sql_code(agent_response.content)
+            environment_messages.append(HumanMessage(content=sql_code))
+            agent_messages.append(agent_response)
+            if "Final Answer:" in agent_response.content:
+                break
+            environment_result = self.environment_model.predict_messages(environment_messages)
+            environment_messages.append(environment_result)
+            print("ENVIRONMENT: ", environment_result.content)
+            agent_messages.append(HumanMessage(content=environment_result.content))
+            
+        return agent_messages, environment_messages
+            

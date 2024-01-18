@@ -28,6 +28,11 @@ Launch the application with streamlit:
 streamlit run ./app.py
 ```
 
+Record Agent-Environment conversation:
+```bash
+python ./record.py 
+```
+
 
 
 
