@@ -171,6 +171,17 @@ SQL command:
 Please ONLY respond in rawMySQL format (**with no extra formatting or commentary**) for a user of mysql-connector-python. Your output should STRICTLY be in ```Output\n<MySQL Output>\n```. For example, if the result is 59.555, the result would be presented as ```Output\n[('59.555',)]\n```. After responding, END your response.
 '''
 
+def read_pickle(file):
+    import pickle
+    with open(file, "rb") as file:
+        data = pickle.load(file)
+    return data
+
+def save_json(data, file):
+    import json
+    with open(file, "w") as file:
+        json.dump(data)
+
 def process_task_environment(data):
     return (data.split("..")[0], '\n'.join(data.split("..")[1:]))
 

@@ -1,5 +1,5 @@
 import pickle
-from helpers import NoneMessage, chat3
+from helpers import NoneMessage, chat1, chat2, chat3
 import re
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
@@ -107,8 +107,6 @@ class DBBenchChatContent(ChatContent):
         self.agents = None
         self.environments = None
         self.offset = 3
-        self.agent_sep_task_desc = ChatOpenAI(model="gpt-3.5-turbo")
-        self.agent_sep_task_desc.temperature = 0.0
     
     def _ext_to_int_index(self, external_index):
         return external_index - self.offset
@@ -307,3 +305,31 @@ class DBBenchChatContent(ChatContent):
             print(environment_result.content)
             self.agents[example_index].append(HumanMessage(content=environment_result.content))
 
+    def play_start2end(self, task, num_turns):
+        agent_messages = chat1[:1] + [HumanMessage(content=task)]
+        agent_response = self.agent_model.predict_messages(agent_messages)
+        print("AGENT: ", agent_response.content)
+        agent_messages.append(agent_response)
+        tables_ = self.creator_model.predict_messages(chat3 + [HumanMessage(content=task)]).content
+        sql_code = self._get_sql_code(agent_response.content)
+        environment_prompt = environment_prompt_template.format(tables_, task, sql_code)
+        environment_messages = [HumanMessage(content=environment_prompt)]
+        environment_result = self.environment_model.predict_messages(environment_messages)
+        environment_messages.append(environment_result)
+        agent_messages.append(HumanMessage(content=environment_result.content))
+        print("ENVIRONMENT: ", environment_result.content)
+        for i in range(num_turns):
+            agent_response = self.agent_model.predict_messages(agent_messages)
+            print("AGENT: ", agent_response.content)
+            sql_code = self._get_sql_code(agent_response.content)
+            environment_messages.append(HumanMessage(content=sql_code))
+            agent_messages.append(agent_response)
+            if "Final Answer:" in agent_response.content:
+                break
+            environment_result = self.environment_model.predict_messages(environment_messages)
+            environment_messages.append(environment_result)
+            print("ENVIRONMENT: ", environment_result.content)
+            agent_messages.append(HumanMessage(content=environment_result.content))
+            
+        return agent_messages, environment_messages
+            
