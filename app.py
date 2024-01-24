@@ -1,14 +1,14 @@
 
 import streamlit as st
 #from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point, chat_bubble, add_message, model, environment_model, creator_model
+from helpers import chat_bubble, model, environment_model, creator_model, db_chat1, db_chat2, os_chat1, os_chat2
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
 from dotenv import load_dotenv
 import re
 import pickle
-from chatcontent import DBBenchChatContent
+from chatcontent import DBBenchChatContent, OSChatContent
 
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
@@ -17,10 +17,10 @@ OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 
 # Initialize a session state to store the conversation
 if 'agent_messages' not in st.session_state:
-    st.session_state.agent_messages = deepcopy(chat1)
+    st.session_state.agent_messages = deepcopy(os_chat1)
 # Initialize a session state to store the conversation
 if 'environment_messages' not in st.session_state:
-    st.session_state.environment_messages = deepcopy(chat2)
+    st.session_state.environment_messages = deepcopy(os_chat2)
 
 # Add a state variable for edit mode
 if 'edit_mode' not in st.session_state:
@@ -47,10 +47,11 @@ if 'file_location' not in st.session_state:
     st.session_state.file_processed = False
 
 if 'cc' not in st.session_state:
-    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+    # st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+    st.session_state.cc = OSChatContent(model, environment_model, creator_model)
     inital = {
-            "agents": [chat1],
-            "environments": [chat2]
+            "agents": [os_chat1],
+            "environments": [os_chat2]
     }
     st.session_state.cc.load(inital)
 
@@ -86,10 +87,10 @@ def main():
             st.header("Agent")
         with col2:
             st.header("Environment")
-
+            
     for index in range(max_length):
         # Create a row for each pair of messages
-       
+
         row = st.container()
         with row:
             col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
@@ -152,7 +153,8 @@ def main():
                 try:
                     # Deserialize the file content
                     filecontents = pickle.load(uploaded_file)
-                    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+                    # st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+                    st.session_state.cc = OSChatContent(model, environment_model, creator_model)
                     st.session_state.cc.load(filecontents)
                     st.session_state.file_processed = True
                     st.session_state['file_location'] = uploaded_file
