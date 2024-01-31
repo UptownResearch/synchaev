@@ -47,12 +47,23 @@ if 'file_location' not in st.session_state:
     st.session_state.file_processed = False
 
 if 'cc' not in st.session_state:
-    # st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
-    st.session_state.cc = OSChatContent(model, environment_model, creator_model)
-    inital = {
-            "agents": [os_chat1],
-            "environments": [os_chat2]
-    }
+    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+    # st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+    if isinstance(st.session_state.cc, DBBenchChatContent):
+        inital = {
+                "agents": [db_chat1],
+                "environments": [db_chat2]
+        }
+    elif isinstance(st.session_state.cc, OSChatContent):
+        inital = {
+                "agents": [os_chat1],
+                "environments": [os_chat2]
+        }
+    else:
+        inital = {
+                "agents": [],
+                "environments": []
+        }
     st.session_state.cc.load(inital)
 
 # Function to update the current index
@@ -153,8 +164,8 @@ def main():
                 try:
                     # Deserialize the file content
                     filecontents = pickle.load(uploaded_file)
-                    # st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
-                    st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+                    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+                    # st.session_state.cc = OSChatContent(model, environment_model, creator_model)
                     st.session_state.cc.load(filecontents)
                     st.session_state.file_processed = True
                     st.session_state['file_location'] = uploaded_file

@@ -62,7 +62,7 @@ bubble_style = """
 
 
 # --------------------------DBBench Prompts-------------------------
-db_chat1 = [HumanMessage(content='I will ask you a question, then you should help me operate a MySQL database with SQL to answer the question.\nYou have to explain the problem and your solution to me and write down your thoughts. After thinking and explaining \nthoroughly, every round you can choose to operate or to answer. your operation should be like this: \nAction: Operation ```sql SELECT * FROM table WHERE condition; ``` You MUST put SQL in markdown format \nwithout any other comments. Your SQL should be in one line. Every time you can only execute one SQL statement. \nI will only execute the statement in the first SQL code block. Every time you write a SQL, I will execute it for you \nand give you the output. If the output is zero, or empty, you should always double check that you haven\'t made a mistake before submitting a final answer.\nYou can double check by removing limitations from your previous SQL statement until you get non-zero or non-empty results.\nIf you are done operating, and you want to commit your final answer, then write down: \nAction: Answer Final Answer: ["ANSWER1", "ANSWER2", ...] DO NOT write this pattern unless you are sure about your \nanswer. You must ALWAYS provide SQL or a Final Answer. I expect an accurate and correct answer. Your answer should be accurate. \nYour answer must be exactly the same as the correct answer. If the question is about modifying the database, then after you are done with operation, \nyour answer field can be anything. If your response cannot match any pattern I mentioned earlier, \nyou will be judged as FAIL immediately. Your input will be raw MySQL response, you have to deal with it by yourself.', additional_kwargs={}, example=False),
+db_chat1 = [HumanMessage(content='I will ask you a question, then you should help me operate a MySQL database with SQL to answer the question.\nYou have to explain the problem and your solution to me and write down your thoughts.\nAfter thinking and explaining thoroughly, every round you can choose to operate or to answer.\nyour operation should be like this:\nAction: Operation\n```sql\nSELECT * FROM table WHERE condition;\n```\nYou MUST put SQL in markdown format without any other comments. Your SQL should be in one line.\nEvery time you can only execute one SQL statement. I will only execute the statement in the first SQL code block. Every time you write a SQL, I will execute it for you and give you the output.\nIf you are done operating, and you want to commit your final answer, then write down:\nAction: Answer\nFinal Answer: ["ANSWER1", "ANSWER2", ...]\nDO NOT write this pattern unless you are sure about your answer. I expect an accurate and correct answer.\nYour answer should be accurate. Your answer must be exactly the same as the correct answer.\nIf the question is about modifying the database, then after done operation, your answer field can be anything.\nIf your response cannot match any pattern I mentioned earlier, you will be judged as FAIL immediately.\nYour input will be raw MySQL response, you have to deal with it by yourself.', additional_kwargs={}, example=False),
  AIMessage(content='Ok.', additional_kwargs={}, example=False),
  HumanMessage(content="Query to find the total sales made by the employee 'John Doe'.. There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'. ", additional_kwargs={}, example=False),
  AIMessage(content="To find the total sales made by 'John Doe', we need to join the 'employees' table and the 'sales' table using the 'emp_id' field. This will allow us to find the sales entries associated with the given employee.\n\nFirst, we have to find out the 'emp_id' of 'John Doe'. Let's find his 'emp_id' in the 'employees' table.\n\nAction: Operation \n```sql\nSELECT emp_id FROM employees WHERE first_name='John' AND last_name='Doe';\n```", additional_kwargs={}, example=False),
@@ -102,7 +102,8 @@ sales
 
 Task and Database state:\nQuery to find the total sales made by the employee 'John Doe'. There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'.
 
-SQL command:\n```
+SQL command:
+```
 SELECT emp_id FROM employees WHERE first_name='John' AND last_name='Doe';
 ```
 
@@ -155,9 +156,7 @@ Your answer must be exactly the same as the correct answer. If the question is a
 your answer field can be anything. If your response cannot match any pattern I mentioned earlier, 
 you will be judged as FAIL immediately. Your input will be raw MySQL response, you have to deal with it by yourself.'''
 
-
-db_environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly. The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
-
+db_environment_prompt_template = '''Here is a new database and task.
 Tables:
 {}
 
@@ -171,6 +170,21 @@ SQL command:
 
 Please ONLY respond in rawMySQL format (**with no extra formatting or commentary**) for a user of mysql-connector-python. Your output should STRICTLY be in ```Output\n<MySQL Output>\n```. For example, if the result is 59.555, the result would be presented as ```Output\n[('59.555',)]\n```. After responding, END your response.
 '''
+# db_environment_prompt_template = '''Pretend you are a MySQL database, responding to SQL statements from an agent. Provide realistic MySQL outputs for SELECT, INSERT, UPDATE, and DELETE operations, maintaining the state of the simulated database accordingly. The user is expecting answers like those that would be received when using  mysql-connector-python. Reflect changes in subsequent outputs, and confirm operations with typical MySQL success messages. The initial state of the database is described below
+
+# Tables:
+# {}
+
+# Task and Database state:
+# {}
+
+# SQL command:
+# ```
+# {}
+# ```
+
+# Please ONLY respond in rawMySQL format (**with no extra formatting or commentary**) for a user of mysql-connector-python. Your output should STRICTLY be in ```Output\n<MySQL Output>\n```. For example, if the result is 59.555, the result would be presented as ```Output\n[('59.555',)]\n```. After responding, END your response.
+# '''
 
 
 # --------------------------OS-Interaction Prompts-------------------------
@@ -184,9 +198,8 @@ AIMessage(content='Think: Now I get the answer, it is 12.\n\nAct: answer(12)', a
 os_chat2 = [HumanMessage(content="""Please take on the role of a linux(ubuntu) environment. I will send **bash commands** which the user takes in the process to solve a given **task**. You will respond with the output that is as close to the output of the linux environment as possible.
 Limit the response to around 250 characters. Truncate the output if it overflows the limit by the message "[truncated because the output is too long]".  Do not repeat the command provided. 
 Before performing the task a set of bash commands are run which initializes the state of the OS.
-An example of a task, initialization command, user's bash command and your output is as follows:
+Let's start!
 
-## Example
 Task: tell me how many files are in the directory "/etc"?
 Initialization command:
 ```bash
@@ -218,7 +231,7 @@ HumanMessage(content=f"Task: tell me how many files are in the directory '/etc'?
 ```bash
 sudo touch /etc/example1 /etc/example2 /etc/example3
 ```''', additional_kwargs={}, example=False),
-HumanMessage(content=f"Task: Task: Tell me the number of CPUs.", additional_kwargs={}, example=False),
+HumanMessage(content=f"Task: Tell me the number of CPUs.", additional_kwargs={}, example=False),
  AIMessage(content='''No file and directory creation is required for this task because CPUs are a part of system hardware, they don't exist as files. So the initialization command will be an empty string.
 
 Initialization command: 
@@ -252,28 +265,11 @@ If the output is too long, I will truncate it. The truncated output is not compl
 Now my problem is:
 {}'''
 
-os_environment_prompt_template = """Please take on the role of a linux(ubuntu) environment. I will send **bash commands** which the user takes in the process to solve a given **task**. You will respond with the output that is as close to the output of the linux environment as possible.
-Limit the response to around 250 characters and note that the output has been truncated with the message  "[truncated because the output is too long]".  Do not repeat the command provided. 
-A bash command is run in the OS before performing the task which initializes the state of the OS.
-An example of an initialization command, input task, bash command and your output is as follows:
-
+os_environment_prompt_template = """Task: {}
 Initialization command:
 ```bash
-sudo touch /etc/example1 /etc/example2 /etc/example3
-```
-Task: tell me how many files are in the directory "/etc"?
-Bash command: 
-```bash
-ls /etc
-```
-The output of the OS: 
-```Output
-cpi cron.hourly fuse.conf iproute2 lvm networkd-dispatcher protocols selinux tmpfiles.d [truncated because the output is too long]
-```
-
-Initialization  command:
 {}
-Task: {}
+```
 Bash command:
 ```bash
 {}

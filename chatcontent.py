@@ -1,5 +1,5 @@
 import pickle
-from helpers import NoneMessage, db_chat1, db_chat3, os_chat1, os_chat2, os_chat3, db_environment_prompt_template, os_environment_prompt_template 
+from helpers import NoneMessage, db_chat1, db_chat2, db_chat3, os_chat1, os_chat2, os_chat3, db_environment_prompt_template, os_environment_prompt_template 
 import re
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
@@ -140,7 +140,7 @@ class DBBenchChatContent(ChatContent):
                 sql_code = ""
             self.environments[example_index].append(HumanMessage(content=sql_code)) 
         else:
-            environment_result = self.environment_model.predict_messages(self.environments[example_index])
+            environment_result = self.environment_model.predict_messages([msg for msg in self.environments[example_index] if msg.content!=""])
             self.environments[example_index].append(environment_result)
             print(environment_result.content)
             self.agents[example_index].append(HumanMessage(content=environment_result.content))
@@ -155,7 +155,7 @@ class DBBenchChatContent(ChatContent):
             
         else:
             mapped_index = self._ext_to_int_index(message_index)
-            result = self.environment_model.predict_messages(self.environments[example_index][:mapped_index])
+            result = self.environment_model.predict_messages([msg for msg in self.environments[example_index][:mapped_index] if msg.content!=""])
             if result.content != "":
                 self.environments[example_index][mapped_index] = result
             print(self.environments[example_index][mapped_index])
@@ -183,7 +183,7 @@ class DBBenchChatContent(ChatContent):
             sql_code = sql_block.group(1).strip()
         else:
             sql_code = ""  
-        print( f'SQL code found: {sql_code}')
+        print( f'SQL code found: [{sql_code}]')
         return sql_code
 
     def replay_from_index(self, example_index, conversation_side, message_index):
@@ -215,15 +215,15 @@ class DBBenchChatContent(ChatContent):
             message = self.environments[example_index][-1].content
             self.agents[example_index].append(HumanMessage(content = message))
 
-        if conversation_side == "agent" and message_index == 1:
+        if conversation_side == "agent" and message_index == 9: # 1
             step = 1
-        if conversation_side == "agent" and message_index == 3:
+        if conversation_side == "agent" and message_index == 11: # 3
             step = 2
-        if conversation_side == "environment" and message_index == 4:
+        if conversation_side == "environment" and message_index == 9:
             step = 5
-        if conversation_side == "agent" and message_index > 3:
+        if conversation_side == "agent" and message_index > 11: # 3 
             step = 4
-        if conversation_side == "environment" and message_index >= 4:
+        if conversation_side == "environment" and message_index >= 9: # 4
             step = 5
 
         print(f"\nIndex: {message_index} Determined Step: {step}")
@@ -234,17 +234,17 @@ class DBBenchChatContent(ChatContent):
                 self.agents[example_index].append(agent_response)
                 print(agent_response.content + "\n")
         if step < 4:
-            first_response = self.agents[example_index][3].content
+            first_response = self.agents[example_index][9].content
             sql_code = self._get_sql_code(first_response)
             # task_, environment_info = self._process_task_environment(self.agents[example_index][2].content)
-            task_and_envinfo = self.agents[example_index][2].content
+            task_and_envinfo = self.agents[example_index][8].content
             tables_ = self.creator_model.predict_messages(db_chat3 + [HumanMessage(content=task_and_envinfo)]).content
             environment_prompt = db_environment_prompt_template.format(tables_, task_and_envinfo, sql_code)
-            self.environments[example_index] = [
+            self.environments[example_index] = db_chat2 + [HumanMessage(content=""), AIMessage(content="")] + [
                 HumanMessage(content=environment_prompt)
             ]
             print(environment_prompt)
-            environment_result = self.environment_model.predict_messages(self.environments[example_index])
+            environment_result = self.environment_model.predict_messages([msg for msg in self.environments[example_index] if msg.content!=""])
             self.environments[example_index].append(environment_result)
             self.agents[example_index].append(HumanMessage(content=environment_result.content))
             print(environment_result.content + "\n")
@@ -269,20 +269,21 @@ class DBBenchChatContent(ChatContent):
                 self.environments[example_index].append(HumanMessage(content=sql_code))
             else:
                 skip_once = False
-            environment_result = self.environment_model.predict_messages(self.environments[example_index])
+            environment_result = self.environment_model.predict_messages([msg for msg in self.environments[example_index] if msg.content!=""])
             self.environments[example_index].append(environment_result)
             print(environment_result.content)
             self.agents[example_index].append(HumanMessage(content=environment_result.content))
 
     def play_start2end(self, task, num_turns):
-        agent_messages = db_chat1[:1] + [HumanMessage(content=task)]
+        # agent_messages = db_chat1[:2] + [HumanMessage(content=task)]
+        agent_messages = db_chat1 + [HumanMessage(content=f"Now, I will start a new problem in a new Database. My problem is: {task}")]
         agent_response = self.agent_model.predict_messages(agent_messages)
         print("AGENT: ", agent_response.content)
         agent_messages.append(agent_response)
         tables_ = self.creator_model.predict_messages(db_chat3 + [HumanMessage(content=task)]).content
         sql_code = self._get_sql_code(agent_response.content)
         environment_prompt = db_environment_prompt_template.format(tables_, task, sql_code)
-        environment_messages = [HumanMessage(content=environment_prompt)]
+        environment_messages = db_chat2 + [HumanMessage(content=environment_prompt)]
         environment_result = self.environment_model.predict_messages(environment_messages)
         environment_messages.append(environment_result)
         agent_messages.append(HumanMessage(content=environment_result.content))
@@ -291,10 +292,10 @@ class DBBenchChatContent(ChatContent):
             agent_response = self.agent_model.predict_messages(agent_messages)
             print("AGENT: ", agent_response.content)
             sql_code = self._get_sql_code(agent_response.content)
-            environment_messages.append(HumanMessage(content=sql_code))
             agent_messages.append(agent_response)
             if "Final Answer:" in agent_response.content:
                 break
+            environment_messages.append(HumanMessage(content=sql_code))
             environment_result = self.environment_model.predict_messages(environment_messages)
             environment_messages.append(environment_result)
             print("ENVIRONMENT: ", environment_result.content)
@@ -479,8 +480,8 @@ class OSChatContent(ChatContent):
             # execution. It is used to provide information or explanations about the code to other
             # developers or to remind oneself about the code's purpose.
             task = self.agents[example_index][6].content.replace("Now, I will start a new problem in a new OS. My problem is:", "").strip()
-            init_bash_command = self.creator_model.predict_messages(os_chat3 + [HumanMessage(content=f"Task: {task}")]).content
-            environment_prompt = os_environment_prompt_template.format(init_bash_command, task, bash_code)
+            init_bash_command = self._get_bash_code(self.creator_model.predict_messages(os_chat3 + [HumanMessage(content=f"Task: {task}")]).content)
+            environment_prompt = os_environment_prompt_template.format(task, init_bash_command, bash_code)
             
             # put empty strings to even the left and right side of the conversation when displayed, i.e., agent and environment sides
             self.environments[example_index] = os_chat2 + [HumanMessage(content=""), AIMessage(content="")] + [
@@ -519,14 +520,18 @@ class OSChatContent(ChatContent):
             self.agents[example_index].append(HumanMessage(content=environment_result.content))
 
     def play_start2end(self, task, num_turns):
-        agent_messages = os_chat1[:1] + [HumanMessage(content=task)]
+        agent_messages = os_chat1 + [HumanMessage(content=task)]
         agent_response = self.agent_model.predict_messages(agent_messages)
         print("AGENT: ", agent_response.content)
-        agent_messages.append(agent_response)
-        tables_ = self.creator_model.predict_messages(db_chat3 + [HumanMessage(content=task)]).content
         bash_code = self._get_bash_code(agent_response.content)
-        environment_prompt = os_environment_prompt_template.format(tables_, task, bash_code)
-        environment_messages = [HumanMessage(content=environment_prompt)]
+        agent_messages.append(agent_response)
+        task = task.replace("Now, I will start a new problem in a new OS. My problem is:", "").strip()
+        init_bash_command = self._get_bash_code(self.creator_model.predict_messages(os_chat3 + [HumanMessage(content=f"Task: {task}")]).content)
+        environment_prompt = os_environment_prompt_template.format(task, init_bash_command, bash_code)
+        environment_messages = os_chat2 + [HumanMessage(content=# The above code is a prompt for the
+        # user to enter a question or request
+        # related to Python programming.
+        environment_prompt)]
         environment_result = self.environment_model.predict_messages(environment_messages)
         environment_messages.append(environment_result)
         agent_messages.append(HumanMessage(content=environment_result.content))
@@ -535,7 +540,7 @@ class OSChatContent(ChatContent):
             agent_response = self.agent_model.predict_messages(agent_messages)
             print("AGENT: ", agent_response.content)
             bash_code = self._get_bash_code(agent_response.content)
-            environment_messages.append(HumanMessage(content=bash_code))
+            environment_messages.append(HumanMessage(content=f"Bash Command:\n```bash\n{bash_code}\n```"))
             agent_messages.append(agent_response)
             if "finish" in agent_response.content or "answer(" in agent_response.content or bash_code == "":
                 break
