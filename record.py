@@ -9,15 +9,22 @@ load_dotenv()
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 
     
-def main():
-    cc = DBBenchChatContent(model, environment_model, creator_model)
-    # cc = OSChatContent(model, environment_model, creator_model)
-    tasks = read_pickle("./data/dbbench/dbbench_tasks-agentinstruct.pickle")
+def main(agentbench_split):
+    if agentbench_split == "dbbench":
+        cc = DBBenchChatContent(model, environment_model, creator_model)
+    elif agentbench_split == "os":
+        cc = OSChatContent(model, environment_model, creator_model)
+    else:
+        NotImplementedError
+    tasks = read_pickle(f"./data/{agentbench_split}/{agentbench_split}_tasks-agentinstruct.pickle")
 
-    all_conversations = []
+    all_conversations, num_correct = [], 0
     for i, task in tqdm(enumerate(tasks)):
-        _dict = {"conversations": [], "id": f"db_{i}"}
-        agent_messages, _ = cc.play_start2end(task, 6)
+        if isinstance(cc, DBBenchChatContent):
+            _dict = {"conversations": [], "id": f"db_{i}"}
+            agent_messages, _, correct_count = cc.play_start2end(task, 10)
+            num_correct += correct_count
+            print(f"-|-|-|-|-{num_correct}/{i+1}-|-|-|-|-")
 
         if isinstance(cc, DBBenchChatContent):
             del agent_messages[2:8]
@@ -34,8 +41,9 @@ def main():
         print('*/'*100)
         all_conversations.append(_dict)            
 
-        save_json(all_conversations, "./data/dbbench/dbbench-agentinstruct-env_gpt4-v3.json")
+        save_json(all_conversations, f"./data/{agentbench_split}/{agentbench_split}-agentinstruct-env_gpt4-v5.json")
     
 
 if __name__ == "__main__":
-    main()
+    agentbench_split = "os" # choices: ["dbbench", "os"]
+    main(agentbench_split)

@@ -276,8 +276,15 @@ class DBBenchChatContent(ChatContent):
 
     def play_start2end(self, task, num_turns):
         # agent_messages = db_chat1[:2] + [HumanMessage(content=task)]
-        agent_messages = db_chat1 + [HumanMessage(content=f"Now, I will start a new problem in a new Database. My problem is: {task}")]
+        agent_messages = db_chat1 + [HumanMessage(content=f"Now, I will start a new problem in a new Database. My problem is: {task}.")]
         agent_response = self.agent_model.predict_messages(agent_messages)
+        CORRECT_FLAG, i = True, 0
+        while 'Action: Operation\n```sql' not in agent_response.content: 
+            agent_response = self.agent_model.predict_messages(agent_messages)
+            i += 1
+            if i == 5: break
+        if 'Action: Operation\n```sql' not in agent_response.content:
+            CORRECT_FLAG = False
         print("AGENT: ", agent_response.content)
         agent_messages.append(agent_response)
         tables_ = self.creator_model.predict_messages(db_chat3 + [HumanMessage(content=task)]).content
@@ -290,6 +297,13 @@ class DBBenchChatContent(ChatContent):
         print("ENVIRONMENT: ", environment_result.content)
         for i in range(num_turns):
             agent_response = self.agent_model.predict_messages(agent_messages)
+            i = 0
+            while 'Action: Operation\n```sql' not in agent_response.content and 'Action: Answer\nFinal Answer: ["' not in agent_response.content:
+                agent_response = self.agent_model.predict_messages(agent_messages)
+                i += 1
+                if i==5: break
+            if 'Action: Operation\n```sql' not in agent_response.content and 'Action: Answer\nFinal Answer: ["' not in agent_response.content:
+                CORRECT_FLAG = False
             print("AGENT: ", agent_response.content)
             sql_code = self._get_sql_code(agent_response.content)
             agent_messages.append(agent_response)
@@ -300,8 +314,8 @@ class DBBenchChatContent(ChatContent):
             environment_messages.append(environment_result)
             print("ENVIRONMENT: ", environment_result.content)
             agent_messages.append(HumanMessage(content=environment_result.content))
-            
-        return agent_messages, environment_messages
+        
+        return agent_messages, environment_messages, 1 if CORRECT_FLAG else 0 
 
 
 

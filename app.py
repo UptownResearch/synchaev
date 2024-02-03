@@ -1,4 +1,3 @@
-
 import streamlit as st
 #from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from helpers import chat_bubble, model, environment_model, creator_model, db_chat1, db_chat2, os_chat1, os_chat2
@@ -13,58 +12,6 @@ from chatcontent import DBBenchChatContent, OSChatContent
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 
-
-
-# Initialize a session state to store the conversation
-if 'agent_messages' not in st.session_state:
-    st.session_state.agent_messages = deepcopy(os_chat1)
-# Initialize a session state to store the conversation
-if 'environment_messages' not in st.session_state:
-    st.session_state.environment_messages = deepcopy(os_chat2)
-
-# Add a state variable for edit mode
-if 'edit_mode' not in st.session_state:
-    st.session_state.edit_mode = {"agent":{}, "environment":{}}
-
-# Add a state variable to store temporary edited text
-if 'edited_text' not in st.session_state:
-    st.session_state.edited_text = {"agent":{}, "environment":{}}
-
-# Initialize the session state variable if it's not already set
-if 'workspace' not in st.session_state:
-    st.session_state.workspace= None
-
-if 'example_index' not in st.session_state:
-    st.session_state.example_index = 0
-
-if 'num_examples' not in st.session_state:
-    st.session_state.num_examples = 0
-
-if 'file_processed' not in st.session_state:
-    st.session_state.file_processed = False
-
-if 'file_location' not in st.session_state:
-    st.session_state.file_processed = False
-
-if 'cc' not in st.session_state:
-    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
-    # st.session_state.cc = OSChatContent(model, environment_model, creator_model)
-    if isinstance(st.session_state.cc, DBBenchChatContent):
-        inital = {
-                "agents": [db_chat1],
-                "environments": [db_chat2]
-        }
-    elif isinstance(st.session_state.cc, OSChatContent):
-        inital = {
-                "agents": [os_chat1],
-                "environments": [os_chat2]
-        }
-    else:
-        inital = {
-                "agents": [],
-                "environments": []
-        }
-    st.session_state.cc.load(inital)
 
 # Function to update the current index
 def update_index(direction):
@@ -84,7 +31,55 @@ def delete_index():
 
 
 
-def main():
+def main(agentbench_split):
+    # Initialize a session state to store the conversation
+    if 'agent_messages' not in st.session_state:
+        st.session_state.agent_messages = deepcopy(os_chat1)
+    # Initialize a session state to store the conversation
+    if 'environment_messages' not in st.session_state:
+        st.session_state.environment_messages = deepcopy(os_chat2)
+
+    # Add a state variable for edit mode
+    if 'edit_mode' not in st.session_state:
+        st.session_state.edit_mode = {"agent":{}, "environment":{}}
+
+    # Add a state variable to store temporary edited text
+    if 'edited_text' not in st.session_state:
+        st.session_state.edited_text = {"agent":{}, "environment":{}}
+
+    # Initialize the session state variable if it's not already set
+    if 'workspace' not in st.session_state:
+        st.session_state.workspace= None
+
+    if 'example_index' not in st.session_state:
+        st.session_state.example_index = 0
+
+    if 'num_examples' not in st.session_state:
+        st.session_state.num_examples = 0
+
+    if 'file_processed' not in st.session_state:
+        st.session_state.file_processed = False
+
+    if 'file_location' not in st.session_state:
+        st.session_state.file_processed = False
+
+    if 'cc' not in st.session_state:
+        if agentbench_split == "dbbench":
+            st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [db_chat1],
+                    "environments": [db_chat2]
+            }
+        elif agentbench_split == "os":
+            st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [os_chat1],
+                    "environments": [os_chat2]
+            }
+        else:
+            NotImplementedError
+        st.session_state.cc.load(inital)
+        
     st.set_page_config(layout="wide")
     st.title("Synchaev")
     # Create a chat conversation from chat1 and display it
@@ -164,8 +159,12 @@ def main():
                 try:
                     # Deserialize the file content
                     filecontents = pickle.load(uploaded_file)
-                    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
-                    # st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+                    if agentbench_split == "dbbench":
+                        st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "os":
+                        st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+                    else:
+                        NotImplementedError
                     st.session_state.cc.load(filecontents)
                     st.session_state.file_processed = True
                     st.session_state['file_location'] = uploaded_file
@@ -194,4 +193,5 @@ def main():
                     st.error("Please enter a file name.")
 
 if __name__ == "__main__":
-    main()
+    agentbench_split = "os" # choices: ["dbbench", "os"]
+    main(agentbench_split)
