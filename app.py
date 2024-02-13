@@ -1,13 +1,13 @@
 import streamlit as st
 #from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from helpers import chat_bubble, model, environment_model, creator_model, db_chat1, db_chat2, os_chat1, os_chat2
+from helpers import chat_bubble, model, environment_model, creator_model, db_chat1, db_chat2, os_chat1, os_chat2, alf_chat1, alf_chat2
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
 from dotenv import load_dotenv
 import re
 import pickle
-from chatcontent import DBBenchChatContent, OSChatContent
+from chatcontent import DBBenchChatContent, OSChatContent, AlfChatContent
 
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
@@ -75,6 +75,12 @@ def main(agentbench_split):
             inital = {
                     "agents": [os_chat1],
                     "environments": [os_chat2]
+            }
+        elif agentbench_split == "alfworld":
+            st.session_state.cc = AlfChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [alf_chat1],
+                    "environments": [alf_chat2]
             }
         else:
             NotImplementedError
@@ -163,6 +169,8 @@ def main(agentbench_split):
                         st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
                     elif agentbench_split == "os":
                         st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "alfworld":
+                        st.session_state.cc = AlfChatContent(model, environment_model, creator_model)
                     else:
                         NotImplementedError
                     st.session_state.cc.load(filecontents)
@@ -193,5 +201,5 @@ def main(agentbench_split):
                     st.error("Please enter a file name.")
 
 if __name__ == "__main__":
-    agentbench_split = "dbbench" # choices: ["dbbench", "os"]
+    agentbench_split = "alfworld" # choices: ["dbbench", "os", "alfworld"]
     main(agentbench_split)

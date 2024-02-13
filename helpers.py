@@ -16,7 +16,7 @@ top_p = 0.5
 
 # model = FastChatAgent(model_name, controller_address=controller_address, worker_address=worker_address, 
 #                          temperature=temperature , max_new_tokens=max_new_tokens, top_p=top_p)
-model = ChatOpenAI(model="gpt-4-0613")
+model = ChatOpenAI(model="ft:gpt-3.5-turbo-0613:yield-inc::8LLEaLUZ")
 model.temperature = 0.8
 
 
@@ -64,12 +64,12 @@ bubble_style = """
 # --------------------------DBBench Prompts-------------------------
 db_chat1 = [HumanMessage(content='I will ask you a question, then you should help me operate a MySQL database with SQL to answer the question.\nYou have to explain the problem and your solution to me and write down your thoughts.\nAfter thinking and explaining thoroughly, every round you can choose to operate or to answer.\nyour operation should be like this:\nAction: Operation\n```sql\nSELECT * FROM table WHERE condition;\n```\nYou MUST put SQL in markdown format without any other comments. Your SQL should be in one line.\nEvery time you can only execute one SQL statement. I will only execute the statement in the first SQL code block. Every time you write a SQL, I will execute it for you and give you the output.\nIf you are done operating, and you want to commit your final answer, then write down:\nAction: Answer\nFinal Answer: ["ANSWER1", "ANSWER2", ...]\nDO NOT write this pattern unless you are sure about your answer. I expect an accurate and correct answer.\nYour answer should be accurate. Your answer must be exactly the same as the correct answer.\nIf the question is about modifying the database, then after done operation, your answer field can be anything.\nIf your response cannot match any pattern I mentioned earlier, you will be judged as FAIL immediately.\nYour input will be raw MySQL response, you have to deal with it by yourself.', additional_kwargs={}, example=False),
  AIMessage(content='Ok.', additional_kwargs={}, example=False),
- HumanMessage(content="Query to find the total sales made by the employee 'John Doe'.. There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'. ", additional_kwargs={}, example=False),
- AIMessage(content="To find the total sales made by 'John Doe', we need to join the 'employees' table and the 'sales' table using the 'emp_id' field. This will allow us to find the sales entries associated with the given employee.\n\nFirst, we have to find out the 'emp_id' of 'John Doe'. Let's find his 'emp_id' in the 'employees' table.\n\nAction: Operation \n```sql\nSELECT emp_id FROM employees WHERE first_name='John' AND last_name='Doe';\n```", additional_kwargs={}, example=False),
+ HumanMessage(content="Query to find the total sales made by the employee 'Alejandra Mendoza'.. There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'. ", additional_kwargs={}, example=False),
+ AIMessage(content="To find the total sales made by 'Alejandra Mendoza', we need to join the 'employees' table and the 'sales' table using the 'emp_id' field. This will allow us to find the sales entries associated with the given employee.\n\nFirst, we have to find out the 'emp_id' of 'Alejandra Mendoza'. Let's find his 'emp_id' in the 'employees' table.\n\nAction: Operation \n```sql\nSELECT emp_id FROM employees WHERE first_name='Alejandra' AND last_name='Mendoza'\n```", additional_kwargs={}, example=False),
  HumanMessage(content="```Output\n[(1,)]\n```", additional_kwargs={}, example=False),
- AIMessage(content="John Doe's employee ID (emp_id) is 1. \n\nNow, we will use this emp_id to find the total sales made by John Doe. We will sum the 'total_price' from the 'sales' table where 'emp_id' is 1. \n\nAction: Operation \n```sql\nSELECT SUM(total_price) FROM sales WHERE emp_id=1;\n```", additional_kwargs={}, example=False),
- HumanMessage(content="```Output\n[(24900,)]\n```", additional_kwargs={}, example=False),
- AIMessage(content='Action: Answer\nFinal Answer: ["24900"]', additional_kwargs={}, example=False)]
+ AIMessage(content="Alejandra Mendoza's employee ID (emp_id) is 1. \n\nNow, we will use this emp_id to find the total sales made by Alejandra Mendoza. We will sum the 'total_price' from the 'sales' table where 'emp_id' is 1. \n\nAction: Operation \n```sql\nSELECT SUM(total_price) FROM sales WHERE emp_id=1\n```", additional_kwargs={}, example=False),
+ HumanMessage(content="```Output\n[(5000,)]\n```", additional_kwargs={}, example=False),
+ AIMessage(content='Action: Answer\nFinal Answer: ["5000"]', additional_kwargs={}, example=False)]
 
 
 
@@ -100,17 +100,17 @@ sales
 | 1005    | 5      | 2005       | 5        | 2020-05-01 | 500         |
 ```
 
-Task and Database state:\nQuery to find the total sales made by the employee 'John Doe'. There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'.
+Task and Database state:\nQuery to find the total sales made by the employee 'Alejandra Mendoza'. There are 2 tables involved in this task. The first table is named 'employees' with headers 'emp_id', 'first_name', 'last_name', 'email', 'phone_number'. The second table is named 'sales' with headers 'sale_id', 'emp_id', 'product_id', 'quantity', 'sale_date', 'total_price'.
 
 SQL command:
 ```
-SELECT emp_id FROM employees WHERE first_name='John' AND last_name='Doe';
+SELECT emp_id FROM employees WHERE first_name='Alejandra' AND last_name='Mendoza';
 ```
 
 Please ONLY respond in rawMySQL format (**with no extra formatting or commentary**) for a user of mysql-connector-python. Your output should STRICTLY be in ```Output\n<MySQL Output>\n```. For example, if the result is 59.555, the result would be presented as ```Output\n[('59.555',)]\n```. After responding, END your response.""", additional_kwargs={}, example=False),
  AIMessage(content="```Output\n[(1,)]\n```", additional_kwargs={}, example=False),
  HumanMessage(content='SELECT SUM(total_price) FROM sales WHERE emp_id=1;', additional_kwargs={}, example=False),
- AIMessage(content="```Output\n[(24900,)]\n```", additional_kwargs={}, example=False)
+ AIMessage(content="```Output\n[(5000,)]\n```", additional_kwargs={}, example=False)
  ]
 
 db_chat3 = [SystemMessage(content="Create fake SQL tables for the given query (DO NOT produce the SQL code but just create fake tables which is related to the task and the description). You should not write the commands to create the tables but just write down the table contents. The tables you create should look like real ones and be diverse in the contents you imagine. DO NOT use common names, addresses, etc, but make it diverse and new. For easy parsing of your outputs make sure to put the tables as ```Table\n<THE TABLE YOU IMAGINE>\n```.", additional_kwargs={}, example=False),
@@ -276,6 +276,230 @@ Bash command:
 ```
 """
 
+
+# -------------------------Alfworld Prompts-------------------------
+alf_chat1 = [HumanMessage(content='Interact with a household to solve a task. Imagine you are an intelligent agent in a household environment and your target is to perform actions to complete the task goal. At the beginning of your interactions, you will be given the detailed description of the current environment and your goal to accomplish. For each of your turn, you will be given a list of actions which you can choose one to perform in this turn. You should choose from two actions: "THOUGHT" or "ACTION". If you choose "THOUGHT", you should first think about the current condition and plan for your future actions, and then output your action in this turn. Your output must strictly follow this format:"THOUGHT: your thoughts.\n ACTION: your next action\n"; If you choose "ACTION", you should directly output the action in this turn. Your output must strictly follow this format:"ACTION: your next action\n". After your each turn, the environment will give you immediate feedback based on which you plan your next few steps. if the envrionment output "Nothing happened", that means the previous action is invalid and you should try more options.\n Reminder: \n1. the action must be chosen from the given available actions. Any actions except provided available actions will be regarded as illegal. \n2. Think when necessary, try to act directly more in the process.', additional_kwargs={}, example=False),
+AIMessage(content="OK. I'll follow your instructions and try my best to solve the task.", additional_kwargs={}, example=False),
+HumanMessage(content="Here is your task. You are in the middle of a room. Looking quickly around you, you see a bed 1, a diningtable 1, a drawer 4, a drawer 3, a drawer 2, a drawer 1, a garbagecan 1, a sidetable 2, and a sidetable 1. Your task is to: put a cd in sidetable.", additional_kwargs={}, example=False),
+AIMessage(content="THOUGHT: The task is to put a cd in sidetable. First I need to find a cd. Drawers are the most probable place to find a cd. I'll start my search from drawer 1. ACTION: go to drawer 1", additional_kwargs={}, example=False),
+HumanMessage(content="The drawer 1 is closed.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: open drawer 1", additional_kwargs={}, example=False),
+HumanMessage(content="You open the drawer 1. The drawer 1 is open. In it, you see nothing.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: go to drawer 2", additional_kwargs={}, example=False),
+HumanMessage(content="The drawer 2 is closed.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: open drawer 2", additional_kwargs={}, example=False),
+HumanMessage(content="You open the drawer 2. The drawer 2 is open. In it, you see nothing.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: go to drawer 3", additional_kwargs={}, example=False),
+HumanMessage(content="On the drawer 3, you see a keychain 1.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: go to drawer 4", additional_kwargs={}, example=False),
+HumanMessage(content="On the drawer 4, you see a creditcard 1, and a keychain 2.", additional_kwargs={}, example=False),
+AIMessage(content="THOUGHT: I've examined all drawers and couldn't find a CD. I need to look for other places. I'll check the diningtable next. ACTION: go to diningtable 1", additional_kwargs={}, example=False),
+HumanMessage(content="On the diningtable 1, you see a cd 1, a cellphone 2, a creditcard 3, a creditcard 2, a keychain 3, a mug 2, a pen 2, a pen 1, a pencil 2, and a pencil 1.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: take cd 1 from diningtable 1", additional_kwargs={}, example=False),
+HumanMessage(content="You pick up the cd 1 from the diningtable 1.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: go to sidetable 1", additional_kwargs={}, example=False),
+HumanMessage(content="On the sidetable 1, you see a mug 1.", additional_kwargs={}, example=False),
+AIMessage(content="ACTION: put cd 1 in/on sidetable 1", additional_kwargs={}, example=False),
+HumanMessage(content='success("the agent has accomplished the task which was to put a cd in sidetable")', additional_kwargs={}, example=False),
+]
+
+alf_chat2 = [HumanMessage(content="""Your Goal is to simulate a household environment that an agent is acting in. For each turn, you will receive an action chosen by the agent. You must then respond as the environment according to the previous state of the environment. Along with the environment's response you should also generate the updated state of the environment. If the agent has accomplished the task, YOU MUST call the success function: "success("[why task was successful]")".
+Below is the task the agent has been given along with the initial state of the environment.
+
+Initial State:
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Task: You are in the middle of a room. Looking quickly around you, you see a bed 1, a diningtable 1, a drawer 4, a drawer 3, a drawer 2, a drawer 1, a garbagecan 1, a sidetable 2, and a sidetable 1. Your task is to: put a cd in sidetable.
+
+Agent's First Action: THOUGHT: The task is to put a cd in sidetable. First I need to find a cd. Drawers are the most probable place to find a cd. I'll start my search from drawer 1. ACTION: go to drawer 1""", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: The drawer 1 is closed.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: open drawer 1", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: You open the drawer 1. The drawer 1 is open. In it, you see nothing.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: go to drawer 2", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: The drawer 2 is closed.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: open drawer 2", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: You open the drawer 2. The drawer 2 is open. In it, you see nothing.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: go to drawer 3", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: On the drawer 3, you see a keychain 1.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: go to drawer 4", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: On the drawer 4, you see a creditcard 1, and a keychain 2.""", additional_kwargs={}, example=False),
+HumanMessage(content="THOUGHT: I've examined all drawers and couldn't find a CD. I need to look for other places. I'll check the diningtable next. ACTION: go to diningtable 1", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: On the diningtable 1, you see a cd 1, a cellphone 2, a creditcard 3, a creditcard 2, a keychain 3, a mug 2, a pen 2, a pen 1, a pencil 2, and a pencil 1.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: take cd 1 from diningtable 1", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: You pick up the cd 1 from the diningtable 1.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: go to sidetable 1", additional_kwargs={}, example=False),
+AIMessage(content="""State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: On the sidetable 1, you see a mug 1.""", additional_kwargs={}, example=False),
+HumanMessage(content="ACTION: put cd 1 in/on sidetable 1", additional_kwargs={}, example=False),
+AIMessage(content='''State: 
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1", "cd 1"],
+    "sidetable 2": ["alarmclock 1"]
+}
+
+Output: success("the agent has accomplished the task which was to put a cd in sidetable")''', additional_kwargs={}, example=False)]
+
+alf_chat3 = [SystemMessage(content='''Given a task an agent has to perform in a household environment. You have to initialize the state of the house before the agent starts its actions. 
+The initialization will consists of mapping each item present in the task description to the items present in its vicinity. The mapping should be a JSON for easy parsing. For example, when the agent opens drawer 1 it sees pen2.''', additional_kwargs={}, example=False),
+HumanMessage(content=f"Task: You are in the middle of a room. Looking quickly around you, you see a bed 1, a diningtable 1, a drawer 4, a drawer 3, a drawer 2, a drawer 1, a garbagecan 1, a sidetable 2, and a sidetable 1. Your task is to: put a cd in sidetable.", additional_kwargs={}, example=False),
+AIMessage(content='''Initial State:
+{
+    "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
+    "drawer 1": ["nothing"],
+    "drawer 2": ["nothing"],
+    "drawer 3": ["keychain 1"],
+    "drawer 4": ["creditcard 1", "keychain 2"],
+    "garbagecan 1": ["nothing"],
+    "sidetable 1": ["mug 1"],
+    "sidetable 2": ["alarmclock 1"]
+}''', additional_kwargs={}, example=False),
+] 
+
+alf_agent_prompt_improved = '''Interact with a household to solve a task. Imagine you are an intelligent agent in a household environment and your target is to perform actions to complete the task goal. At the beginning of your interactions, you will be given the detailed description of the current environment and your goal to accomplish. For each of your turn, you will be given a list of actions which you can choose one to perform in this turn. You should choose from two actions: "THOUGHT" or "ACTION". If you choose "THOUGHT", you should first think about the current condition and plan for your future actions, and then output your action in this turn. Your output must strictly follow this format:"THOUGHT: your thoughts.\n ACTION: your next action\n"; If you choose "ACTION", you should directly output the action in this turn. Your output must strictly follow this format:"ACTION: your next action\n". After your each turn, the environment will give you immediate feedback based on which you plan your next few steps. if the envrionment output "Nothing happened", that means the previous action is invalid and you should try more options.\n Reminder: \n1. the action must be chosen from the given available actions. Any actions except provided available actions will be regarded as illegal. \n2. Think when necessary, try to act directly more in the process.s'''
+
+alf_environment_prompt_template = """Now lets start a new task in a new environment.
+Initial State:
+{}
+
+Task: 
+{}
+
+Agent's First Action:
+{}"""
 
 def read_pickle(file):
     import pickle

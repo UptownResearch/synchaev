@@ -45,5 +45,5 @@ def main(agentbench_split):
     
 
 if __name__ == "__main__":
-    agentbench_split = "os" # choices: ["dbbench", "os"]
+    agentbench_split = "dbbench" # choices: ["dbbench", "os"]
     main(agentbench_split)
