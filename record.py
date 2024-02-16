@@ -3,7 +3,7 @@ from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from helpers import read_pickle, save_json, model, environment_model, creator_model
 import os
 from dotenv import load_dotenv
-from chatcontent import DBBenchChatContent, OSChatContent
+from chatcontent import DBBenchChatContent, OSChatContent, AlfChatContent, KGChatContent
 
 load_dotenv() 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
@@ -14,6 +14,10 @@ def main(agentbench_split):
         cc = DBBenchChatContent(model, environment_model, creator_model)
     elif agentbench_split == "os":
         cc = OSChatContent(model, environment_model, creator_model)
+    elif agentbench_split == "alfworld":
+        cc = AlfChatContent(model, environment_model, creator_model)
+    elif agentbench_split == "kg":
+        cc = KGChatContent(model, environment_model, creator_model)
     else:
         NotImplementedError
     tasks = read_pickle(f"./data/{agentbench_split}/{agentbench_split}_tasks-agentinstruct.pickle")
@@ -45,5 +49,5 @@ def main(agentbench_split):
     
 
 if __name__ == "__main__":
-    agentbench_split = "dbbench" # choices: ["dbbench", "os"]
+    agentbench_split = "dbbench" # choices: ["dbbench", "os", "alfworld", "kg"]
     main(agentbench_split)
