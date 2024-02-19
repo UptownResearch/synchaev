@@ -1,58 +1,16 @@
-
 import streamlit as st
 #from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from helpers import chat1, chat2, mysql_agent_prompt_improved, environment_prompt_template, process_task_environment, play_from_point, chat_bubble, add_message, model, environment_model, creator_model
+from helpers import chat_bubble, model, environment_model, creator_model
 from copy import deepcopy
 from langchain.chat_models import ChatOpenAI
 import os
 from dotenv import load_dotenv
 import re
 import pickle
-from chatcontent import DBBenchChatContent
+from chatcontents import DBBenchChatContent, OSChatContent, AlfChatContent, KGChatContent, M2WChatContent, WSChatContent
+from prompts import *
 
 load_dotenv() 
-OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
-
-
-
-# Initialize a session state to store the conversation
-if 'agent_messages' not in st.session_state:
-    st.session_state.agent_messages = deepcopy(chat1)
-# Initialize a session state to store the conversation
-if 'environment_messages' not in st.session_state:
-    st.session_state.environment_messages = deepcopy(chat2)
-
-# Add a state variable for edit mode
-if 'edit_mode' not in st.session_state:
-    st.session_state.edit_mode = {"agent":{}, "environment":{}}
-
-# Add a state variable to store temporary edited text
-if 'edited_text' not in st.session_state:
-    st.session_state.edited_text = {"agent":{}, "environment":{}}
-
-# Initialize the session state variable if it's not already set
-if 'workspace' not in st.session_state:
-    st.session_state.workspace= None
-
-if 'example_index' not in st.session_state:
-    st.session_state.example_index = 0
-
-if 'num_examples' not in st.session_state:
-    st.session_state.num_examples = 0
-
-if 'file_processed' not in st.session_state:
-    st.session_state.file_processed = False
-
-if 'file_location' not in st.session_state:
-    st.session_state.file_processed = False
-
-if 'cc' not in st.session_state:
-    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
-    inital = {
-            "agents": [chat1],
-            "environments": [chat2]
-    }
-    st.session_state.cc.load(inital)
 
 # Function to update the current index
 def update_index(direction):
@@ -72,7 +30,96 @@ def delete_index():
 
 
 
-def main():
+def main(agentbench_split):
+    # Add a state variable for edit mode
+    if 'edit_mode' not in st.session_state:
+        st.session_state.edit_mode = {"agent":{}, "environment":{}}
+
+    # Add a state variable to store temporary edited text
+    if 'edited_text' not in st.session_state:
+        st.session_state.edited_text = {"agent":{}, "environment":{}}
+
+    # Initialize the session state variable if it's not already set
+    if 'workspace' not in st.session_state:
+        st.session_state.workspace= None
+
+    if 'example_index' not in st.session_state:
+        st.session_state.example_index = 0
+
+    if 'num_examples' not in st.session_state:
+        st.session_state.num_examples = 0
+
+    if 'file_processed' not in st.session_state:
+        st.session_state.file_processed = False
+
+    if 'file_location' not in st.session_state:
+        st.session_state.file_processed = False
+
+    if 'cc' not in st.session_state:
+        if agentbench_split == "dbbench":
+            # Initialize a session state to store the conversation
+            st.session_state.agent_messages = deepcopy(db_chat1)
+            # Initialize a session state to store the conversation
+            st.session_state.environment_messages = deepcopy(db_chat2)
+            st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [db_chat1],
+                    "environments": [db_chat2]
+            }
+        elif agentbench_split == "os":
+            # Initialize a session state to store the conversation
+            st.session_state.agent_messages = deepcopy(os_chat1)
+            # Initialize a session state to store the conversation
+            st.session_state.environment_messages = deepcopy(os_chat2)
+            st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [os_chat1],
+                    "environments": [os_chat2]
+            }
+        elif agentbench_split == "alfworld":
+            # Initialize a session state to store the conversation
+            st.session_state.agent_messages = deepcopy(alf_chat1)
+            # Initialize a session state to store the conversation
+            st.session_state.environment_messages = deepcopy(alf_chat2)
+            st.session_state.cc = AlfChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [alf_chat1],
+                    "environments": [alf_chat2]
+            }
+        elif agentbench_split == "kg":
+            # Initialize a session state to store the conversation
+            st.session_state.agent_messages = deepcopy(kg_chat1)
+            # Initialize a session state to store the conversation
+            st.session_state.environment_messages = deepcopy(kg_chat2)
+            st.session_state.cc = KGChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [kg_chat1],
+                    "environments": [kg_chat2]
+            }
+        elif agentbench_split == "mind2web":
+            # Initialize a session state to store the conversation
+            st.session_state.agent_messages = deepcopy(m2w_chat1)
+            # Initialize a session state to store the conversation
+            st.session_state.environment_messages = deepcopy(m2w_chat2)
+            st.session_state.cc = M2WChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [m2w_chat1],
+                    "environments": [m2w_chat2]
+            }
+        elif agentbench_split == "webshop":
+            # Initialize a session state to store the conversation
+            st.session_state.agent_messages = deepcopy(ws_chat1)
+            # Initialize a session state to store the conversation
+            st.session_state.environment_messages = deepcopy(ws_chat2)
+            st.session_state.cc = KGChatContent(model, environment_model, creator_model)
+            inital = {
+                    "agents": [ws_chat1],
+                    "environments": [ws_chat2]
+            }
+        else:
+            NotImplementedError
+        st.session_state.cc.load(inital)
+        
     st.set_page_config(layout="wide")
     st.title("Synchaev")
     # Create a chat conversation from chat1 and display it
@@ -86,10 +133,10 @@ def main():
             st.header("Agent")
         with col2:
             st.header("Environment")
-
+            
     for index in range(max_length):
         # Create a row for each pair of messages
-       
+
         row = st.container()
         with row:
             col1, col2 = st.columns([5, 5])  # Adjust column widths as needed
@@ -152,7 +199,20 @@ def main():
                 try:
                     # Deserialize the file content
                     filecontents = pickle.load(uploaded_file)
-                    st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+                    if agentbench_split == "dbbench":
+                        st.session_state.cc = DBBenchChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "os":
+                        st.session_state.cc = OSChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "alfworld":
+                        st.session_state.cc = AlfChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "kg":
+                        st.session_state.cc = KGChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "mind2web":
+                        st.session_state.cc = M2WChatContent(model, environment_model, creator_model)
+                    elif agentbench_split == "webshop":
+                        st.session_state.cc = WSChatContent(model, environment_model, creator_model)
+                    else:
+                        NotImplementedError
                     st.session_state.cc.load(filecontents)
                     st.session_state.file_processed = True
                     st.session_state['file_location'] = uploaded_file
@@ -181,4 +241,5 @@ def main():
                     st.error("Please enter a file name.")
 
 if __name__ == "__main__":
-    main()
+    agentbench_split = "mind2web" # choices: ["dbbench", "os", "alfworld", "kg", "mind2web", "webshop"]
+    main(agentbench_split)

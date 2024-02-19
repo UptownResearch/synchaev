@@ -17,14 +17,15 @@ To install Synchaev, follow these steps:
    ```bash
    cd synchaev
    ```
-3. Install the required dependencies
+3. Install from source
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
-
+   
 ## Usage
 Launch the application with streamlit:
 ```bash
+export OPENAI_API_KEY="sk-<your_key>"
 streamlit run ./app.py
 ```
 
