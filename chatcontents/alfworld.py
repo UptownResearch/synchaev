@@ -112,18 +112,6 @@ class AlfChatContent(ChatContent):
             del self.environments[example_index][mapped_index:]
             del self.agents[example_index][message_index:]
 
-    # def _process_task_environment(self, data):
-    #     return (data.split("There are 2 tables involved with this task.")[0], data.split("There are 2 tables involved with this task.")[1])
-
-    # def _get_bash_code(self, message):
-    #     bash_block = re.search(r"```bash\n(.*?)\n```", message, re.DOTALL)
-    #     if bash_block:
-    #         bash_code = bash_block.group(1).strip()
-    #     else:
-    #         bash_code = ""  
-    #     print( f'bash code found: {bash_code}')
-    #     return bash_code
-
     def replay_from_index(self, example_index, conversation_side, message_index):
         print("\nplay_from_point\n\n")
         step = 0
@@ -198,7 +186,7 @@ class AlfChatContent(ChatContent):
                 self.environments[example_index].append(HumanMessage(content=self.agents[example_index][-1].content))
                 print(self.environments[example_index][-1])
 
-        num_turns = 15 
+        num_turns = 25 
         for i in range(num_turns):
             if not skip_once:
                 agent_response = self.agent_model.predict_messages(self.agents[example_index])
@@ -237,6 +225,7 @@ class AlfChatContent(ChatContent):
             print("ENVIRONMENT: ", environment_result.content)            
             if "success" in environment_result.content:
                 break
+            print("environment_result.content =", environment_result.content)
             agent_messages.append(HumanMessage(content=environment_result.content.split('Output: ')[1].strip()))
             
         return agent_messages, environment_messages            

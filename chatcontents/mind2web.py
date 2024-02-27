@@ -18,7 +18,7 @@ class M2WChatContent(ChatContent):
         self.creator_model = creator_model
         self.agents = None
         self.environments = None
-        self.offset = 1
+        self.offset = 0
     
     def _ext_to_int_index(self, external_index):
         return external_index - self.offset
@@ -73,7 +73,14 @@ class M2WChatContent(ChatContent):
             self.agents[example_index][-1].content = self.creator_model.predict_messages(m2w_chat3 + [self.agents[example_index][-1]]).content + \
                 "\n\n" + self.agents[example_index][-1].content
             self.environments[example_index][-1].content = str(self.agents[example_index][-1].content)
-            agent_response = self.agent_model.predict_messages(self.agents[example_index])
+            
+            # Resampling
+            j, agent_response = 5, self.agent_model.predict_messages(self.agents[example_index])
+            while "Thought: " not in agent_response.content or "\nAnswer: " not in agent_response.content:
+                agent_response = self.agent_model.predict_messages(self.agents[example_index])
+                j += 1
+                if j == 5: break
+            print("agent_response.content =", agent_response.content)
             self.agents[example_index].append(agent_response)
             print(agent_response.content + "\n")
 
@@ -89,7 +96,13 @@ class M2WChatContent(ChatContent):
     def refresh_at_index(self, example_index, conversation_side, message_index):
         # print(f"Modifying Index {index}")
         if conversation_side == "agent":
-            result = self.agent_model.predict_messages(self.agents[example_index][:message_index])
+            # Resampling
+            j, result = 5, self.agent_model.predict_messages(self.agents[example_index][:message_index])
+            while "Thought: " not in result.content or "\nAnswer: " not in result.content:
+                result = self.agent_model.predict_messages(self.agents[example_index])
+                j += 1
+                if j == 5: break
+
             if result.content != "":
                 self.agents[example_index][message_index] = result
             print(self.agents[example_index][message_index])
@@ -151,6 +164,13 @@ class M2WChatContent(ChatContent):
 
         if step == 1:
             if  self.agents[example_index][-1].type == "HumanMessage":
+                # Resampling
+                j, agent_response = 5, self.agent_model.predict_messages(self.agents[example_index])
+                while "Thought: " not in agent_response.content or "\nAnswer: " not in agent_response.content:
+                    agent_response = self.agent_model.predict_messages(self.agents[example_index])
+                    j += 1
+                    if j == 5: break   
+                            
                 agent_response = self.agent_model.predict_messages(self.agents[example_index])
                 self.agents[example_index].append(agent_response)
                 print(agent_response.content + "\n")
@@ -159,7 +179,12 @@ class M2WChatContent(ChatContent):
         agent_messages = m2w_chat1 + [HumanMessage(content=task)]
         agent_messages[-1].content = self.creator_model.predict_messages(m2w_chat3 + [agent_messages[-1]]).content + \
             "\n\n" + agent_messages[-1].content
-        agent_response = self.agent_model.predict_messages(agent_messages)
+        # Resampling
+        j, agent_response = 5, self.agent_model.predict_messages(agent_messages)
+        while "Thought: " not in agent_response.content or ".\nAnswer: " not in agent_response.content:
+            agent_response = self.agent_model.predict_messages(agent_messages)
+            j += 1
+            if j == 5: break
         agent_messages.append(agent_response)
         print(agent_response.content + "\n")        
         return agent_messages, [""]    

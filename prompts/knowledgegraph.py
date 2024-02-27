@@ -19,40 +19,19 @@ kg_chat1 = [HumanMessage(content="You are an agent that answers questions based 
  HumanMessage(content='Observation: variable #3, which are instances of spaceflight.rocket_engine_designer', additional_kwargs={}, example=False),
  AIMessage(content='Thought: #3 is the final answer to the question, which represents the target rocket engine designer.\nFinal Answer: #3', additional_kwargs={}, example=False)]
 
-kg_chat2 = [HumanMessage(content="""Please pretend you are a knowledge base that is being used by an agent, and adhere to the following summary instructions to simulate the environment:
+kg_chat2 = [HumanMessage(content="""Please pretend you are a knowledge base that is being used by an agent. 
+Below are the functions that the user may use to answer the question:
+- get_relations(variable) - list all mock relations pertaining to that variable. For example, if the variable is "Gas-generator cycle", the output could be [spaceflight.rocket_engine_cycle.rocket_engines, spaceflight.satellite.orbiting, spaceflight.rocket_stage.fuel, spaceflight.satellite_manufacturer.spacecraft_manufactured, automotive.fuel.engines].
+- get_neighbors(variable, relation) - return all entities linked to the variable via the specified relation. For instance, if the variable is "Gas-generator cycle" and the relation is "spaceflight.rocket_engine_cycle.rocket_engines", the output could be instances of spaceflight.bipropellant_rocket_engine.
+- intersection(variable1, variable2) - provide the common entities between the two variables.
+- get_attributes(variable) - list all attributes for that variable.
+- argmax(variable, attribute) and argmin(variable, attribute) - return the entity with the highest or lowest attribute value, respectively.
+- count(variable) - return the count of the variable.
 
-Simulate Responses to Queries:
+The response to the above functions should ALWAYS contain the variable encoded in digits and should always start from 0. 
+For example if the user inputs "count(#0)", you should respond as "Observation: variable #1, which is a number".
 
-Act as a knowledge base for an agent, providing predefined responses based on a mock-up of interrelated entities and relations.
-
-Maintain Logical Consistency:
-
-Ensure that responses are logically consistent with the information and structure of the mock knowledge base.
-
-One Action per Turn:
-
-Allow the agent to execute only one action per turn, providing the result of that action before it can proceed to the next.
-
-Function Implementation:
-
-- When the agent uses get_relations(variable), list all mock relations pertaining to that variable. For example, if the variable is "Gas-generator cycle", the output could be [spaceflight.rocket_engine_cycle.rocket_engines, spaceflight.satellite.orbiting, spaceflight.rocket_stage.fuel, spaceflight.satellite_manufacturer.spacecraft_manufactured, automotive.fuel.engines].  Make sure to provide realistic relations that do not help answer the question (AT LEAST 5!).
-
-- For get_neighbors(variable, relation), return all entities linked to the variable via the specified relation. For instance, if the variable is "Gas-generator cycle" and the relation is "spaceflight.rocket_engine_cycle.rocket_engines", the output could be instances of spaceflight.bipropellant_rocket_engine. Make sure to provide realistic entities that do not help answer the question (AT LEAST 5!).
-
-- With intersection(variable1, variable2), provide the common entities between the two variables. Make sure to provide realistic entities that do not help answer the question (AT LEAST 5!).
-
-- When get_attributes(variable) is called, list all attributes for that variable. Make sure to provide realistic attributes that do not help answer the question (AT LEAST 10!).
-
-- For argmax(variable, attribute) and argmin(variable, attribute), return the entity with the highest or lowest attribute value, respectively.
-
-- Respond with a count when count(variable) is used.
-
-- Validate the agent's declared answer against your simulation data.
-
-Throughout this process, maintain the integrity of a knowledge base simulation by providing realistic, consistent responses that allow the agent to navigate the database as it would in a true query environment.
-
-Here is the task:
-
+## EXAMPLE
 Knowledge Graph State:
 {
 "Kerosene": [chemistry.chemical.compound, chemistry.fuel_type.rocket_engine, transportation.fuel_concept.by_user, chemistry.chemical_product.active_ingredient, chemistry.reagent_product.reagents_used_in, chemistry.chemical_supplier.products_supplied, medicine.drug.ingredient, film.film_production_designer.film_sets_designed, chemistry.chemical_standard_testing.astm_d1655_standard_testing, chemistry.chemical_product.production, chemistry.fuel_type.source, chemistry.fuel_type.energy_content, chemistry.fuel_type.bulk_properties, chemistry.fuel_type.point_of_application, chemistry.fuel_type.application],

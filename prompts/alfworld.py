@@ -194,17 +194,17 @@ AIMessage(content='''State:
 
 Output: success("the agent has accomplished the task which was to put a cd in sidetable")''', additional_kwargs={}, example=False)]
 
-alf_chat3 = [SystemMessage(content='''Given a task an agent has to perform in a household environment. You have to initialize the state of the house before the agent starts its actions. 
-The initialization will consists of mapping each item present in the task description to the items present in its vicinity. The mapping should be a JSON for easy parsing. For example, when the agent opens drawer 1 it sees pen2.''', additional_kwargs={}, example=False),
+alf_chat3 = [SystemMessage(content='''Given a task an agent has to perform in a household environment. You have to initialize the state of the house before the agent starts interacting. 
+The initialization consists of mapping each item mentioned in the task to the items present in its vicinity. For example, when the agent opens drawer 1 it sees pen2; so pen 1 should be mapped to drawer 1.
+To easily parse your output pls create the mapping as a JSON.''', additional_kwargs={}, example=False),
 HumanMessage(content=f"Task: You are in the middle of a room. Looking quickly around you, you see a bed 1, a diningtable 1, a drawer 4, a drawer 3, a drawer 2, a drawer 1, a garbagecan 1, a sidetable 2, and a sidetable 1. Your task is to: put a cd in sidetable.", additional_kwargs={}, example=False),
-AIMessage(content='''Initial State:
+AIMessage(content='''The task is to put a cd in sidetable. Let's initialize the state of the environment, putting cd 1 on diningtable 1. 
+Initial State:
 {
     "bed 1": ["book 1", "cellphone 1", "laptop 1", "pillow 2", "pillow 1"],
-    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 3", "creditcard 2", "keychain 3", "mug 2", "pen 2", "pen 1", "pencil 2", "pencil 1"],
-    "drawer 1": ["nothing"],
-    "drawer 2": ["nothing"],
-    "drawer 3": ["keychain 1"],
-    "drawer 4": ["creditcard 1", "keychain 2"],
+    "diningtable 1": ["cd 1", "cellphone 2", "creditcard 2", "keychain 3", "pen 2", "pen 1", "pencil 1"],
+    "drawer 1": ["keychain 1"],
+    "drawer 2": ["creditcard 1", "keychain 2"],
     "garbagecan 1": ["nothing"],
     "sidetable 1": ["mug 1"],
     "sidetable 2": ["alarmclock 1"]
