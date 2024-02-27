@@ -222,24 +222,25 @@ class KGChatContent(ChatContent):
         agent_response = self.agent_model.predict_messages(agent_messages)
         print("AGENT: ", agent_response.content)
         agent_messages.append(agent_response)
-        task = task.replace("Here is your new task.", "").strip()
-        init_state = self.creator_model.predict_messages(alf_chat3 + [HumanMessage(content=f"Now here is a new task: {task}")]).content.replace("Initial State:", "").strip()
-        environment_prompt = alf_environment_prompt_template.format(init_state, task, agent_response.content)
-        environment_messages = alf_chat2 + [HumanMessage(content=environment_prompt)]
+        complexity = random.choices([1, 2, 3], weights=[0.25, 0.25, 0.5], k=1)[0]
+        kg_chat3[1].content = kg_chat3[1].content.format(task, complexity)
+        init_state = re.findall(r"relation_map = dict\((.*?)\)", self.creator_model.predict_messages(kg_chat3).content, re.DOTALL)[0]
+        environment_prompt = kg_environment_prompt_template.format(init_state, task.replace("A new question:", "").strip(), agent_messages[-1].content)
+        environment_messages = kg_chat2 + [HumanMessage(content=environment_prompt)]
         environment_result = self.environment_model.predict_messages(environment_messages)
         environment_messages.append(environment_result)
-        agent_messages.append(HumanMessage(content=environment_result.content.split('Output: ')[1].strip()))
+        agent_messages.append(HumanMessage(content=environment_result.content))
         print("ENVIRONMENT: ", environment_result.content)
         for i in range(num_turns):
             agent_response = self.agent_model.predict_messages(agent_messages)
             print("AGENT: ", agent_response.content)
-            environment_messages.append(HumanMessage(content=agent_response.content))
             agent_messages.append(agent_response)
+            if "Final Answer:" in agent_response.content:
+                break
+            environment_messages.append(HumanMessage(content=agent_response.content))
             environment_result = self.environment_model.predict_messages(environment_messages)
             environment_messages.append(environment_result)
-            print("ENVIRONMENT: ", environment_result.content)            
-            if "Final Answer:" in environment_result.content:
-                break
+            print("ENVIRONMENT: ", environment_result.content)         
             agent_messages.append(HumanMessage(content=environment_result.content))
             
         return agent_messages, environment_messages    
