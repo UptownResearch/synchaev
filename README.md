@@ -4,7 +4,7 @@
 
 Synchaev is a user interface designed for interacting  with agent training data created using a synthetic (LLM created) environment.
 
-## Features
+## Setup
 
 
 To install Synchaev, follow these steps:
@@ -35,5 +35,5 @@ python ./record.py
 ```
 
 
-
+A report on our experiments to improve LLMs as general purpose agents can be found [here](https://github.com/UptownResearch/synchaev/blob/main/assets/Report.pdf).
 
